@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-transparent overflow-hidden select-none;
+  html, body, #root, main, .w-screen, .h-screen {
+    background: transparent !important;
     background-color: transparent !important;
   }
-  html {
-    background-color: transparent !important;
+  body {
+    @apply overflow-hidden select-none;
   }
 }
 

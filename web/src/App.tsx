@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { VehicleContract } from './components/contract/VehicleContract';
 import { VehicleSaleTablet } from './components/sale/VehicleSaleTablet';
+import { MainMenu } from './components/mainMenu/MainMenu';
 import { ContractData } from './types/contract';
 import { SaleData } from './types/sale';
 import { mockContract } from './data/mockContract';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  const [mode, setMode] = useState<'buy' | 'sell'>('buy');
+  const [mode, setMode] = useState<'buy' | 'sell' | 'menu'>('buy');
   const [contractData, setContractData] = useState<ContractData | null>(null);
   const [saleData, setSaleData] = useState<SaleData | null>(null);
+  const [menuData, setMenuData] = useState<any | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -55,6 +57,14 @@ const App: React.FC = () => {
           dealerFee: data.dealerFee || 0
         });
         setVisible(true);
+      } else if (data.action === "mainMenu") {
+        setMode('menu');
+        setMenuData({
+          bizName: data.bizName || "CONCESSIONÁRIA",
+          enableSellBack: data.enableSellBack !== false,
+          options: data.options
+        });
+        setVisible(true);
       } else if (data.action === "close") {
         setVisible(false);
       }
@@ -80,6 +90,26 @@ const App: React.FC = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const forceTransparency = () => {
+      const rootEl = document.getElementById('root');
+      if (rootEl) {
+        rootEl.style.setProperty('background', 'transparent', 'important');
+        rootEl.style.setProperty('background-color', 'transparent', 'important');
+      }
+      document.body.style.setProperty('background', 'transparent', 'important');
+      document.body.style.setProperty('background-color', 'transparent', 'important');
+      document.documentElement.style.setProperty('background', 'transparent', 'important');
+      document.documentElement.style.setProperty('background-color', 'transparent', 'important');
+    };
+    forceTransparency();
+    if (visible) {
+      setTimeout(forceTransparency, 0);
+      setTimeout(forceTransparency, 100);
+      setTimeout(forceTransparency, 500);
+    }
+  }, [visible]);
 
   const handleClose = () => {
     setVisible(false);
@@ -108,11 +138,35 @@ const App: React.FC = () => {
     setVisible(false);
   };
 
+  const handleSelectSell = () => {
+    fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/selectSell`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    setVisible(false);
+  };
+
+  const handleSelectSellBack = () => {
+    fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/selectSellBack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    setVisible(false);
+  };
+
   if (!visible) return null;
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent">
-      <main className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in duration-500 py-8">
+    <div 
+      className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
+      style={{ backgroundColor: 'transparent', background: 'transparent' }}
+    >
+      <main 
+        className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in duration-500 py-8"
+        style={{ backgroundColor: 'transparent', background: 'transparent' }}
+      >
         {mode === 'buy' && contractData && (
           <VehicleContract 
             data={contractData} 
@@ -124,6 +178,14 @@ const App: React.FC = () => {
           <VehicleSaleTablet 
             data={saleData}
             onConfirm={handleConfirmSale}
+            onCancel={handleClose}
+          />
+        )}
+        {mode === 'menu' && menuData && (
+          <MainMenu 
+            data={menuData}
+            onSelectSell={handleSelectSell}
+            onSelectSellBack={handleSelectSellBack}
             onCancel={handleClose}
           />
         )}

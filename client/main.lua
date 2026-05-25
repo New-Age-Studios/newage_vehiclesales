@@ -73,6 +73,31 @@ local function despawnOccasionsVehicles()
     table.wipe(entityZones)
 end
 
+local function openMainMenu(bool)
+    if not bool then
+        SetNuiFocus(false, false)
+        SendNUIMessage({ action = 'close' })
+        return
+    end
+
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = 'mainMenu',
+        bizName = config.zones[zone].businessName,
+        enableSellBack = config.enableSellBack ~= false,
+        options = {
+            sell = {
+                title = locale('menu.sell_vehicle'),
+                desc = locale('menu.sell_vehicle_help')
+            },
+            sellBack = {
+                title = locale('menu.sell_back'),
+                desc = locale('menu.sell_back_help')
+            }
+        }
+    })
+end
+
 local function openSellContract(bool)
     if not bool then
         SetNuiFocus(false, false)
@@ -211,6 +236,18 @@ RegisterNUICallback('sellVehicle', function(data, cb)
     cb('ok')
 end)
 
+RegisterNUICallback('selectSell', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+    TriggerEvent('qb-vehiclesales:client:SellVehicle')
+end)
+
+RegisterNUICallback('selectSellBack', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+    TriggerEvent('qb-occasions:client:SellBackCar')
+end)
+
 local currentBusyPlate = nil
 
 RegisterNUICallback('close', function(_, cb)
@@ -262,7 +299,7 @@ AddEventHandler('qb-occasions:client:SellBackCar', function()
         vehicleData.plate = GetVehicleNumberPlateText(cache.vehicle)
         local owned, balance = lib.callback.await('qbx_vehiclesales:server:checkVehicleOwner', false, vehicleData.plate)
         if owned then
-            if balance < 1 then
+            if not balance or balance < 1 then
                 TriggerServerEvent('qb-occasions:server:sellVehicleBack', vehicleData)
                 DeleteVehicle(cache.vehicle)
             else
@@ -354,23 +391,7 @@ AddEventHandler('qb-vehiclesales:client:OpenContract', function(contract)
 end)
 
 AddEventHandler('qb-occasions:client:MainMenu', function()
-    lib.registerContext({
-        id = 'qb_vehiclesales_menu',
-        title = config.zones[zone].businessName,
-        options = {
-            {
-                title =  locale('menu.sell_vehicle'),
-                description = locale('menu.sell_vehicle_help'),
-                event = 'qb-vehiclesales:client:SellVehicle',
-            },
-            {
-                title =  locale('menu.sell_back'),
-                description = locale('menu.sell_back_help'),
-                event = 'qb-occasions:client:SellBackCar',
-            },
-        },
-    })
-    lib.showContext('qb_vehiclesales_menu')
+    openMainMenu(true)
 end)
 
 CreateThread(function()

@@ -134,7 +134,8 @@ RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
     local player = exports.qbx_core:GetPlayer(src)
     local plate = vehData.plate
     local price = getVehPrice(vehData.model)
-    local payout = math.floor(price * 0.5) -- This will give you half of the cars value
+    local percentage = config.sellBackPercentage or 50
+    local payout = math.floor(price * (percentage / 100))
     player.Functions.AddMoney('bank', payout)
     exports.qbx_core:Notify(src, (locale('success.sold_car_for_price'):format(payout)), 'success', 5500)
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ?', {plate})
