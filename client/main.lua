@@ -114,14 +114,15 @@ local function openMainMenu(bool)
         currencyCode = config.currencyCode or "BRL",
         bizName = config.zones[zone].businessName,
         enableSellBack = config.enableSellBack ~= false,
+        uiTranslations = getUiTranslations(),
         options = {
             sell = {
-                title = locale('menu.sell_vehicle'),
-                desc = locale('menu.sell_vehicle_help')
+                title = t('menu.sell_vehicle'),
+                desc = t('menu.sell_vehicle_help')
             },
             sellBack = {
-                title = locale('menu.sell_back'),
-                desc = locale('menu.sell_back_help')
+                title = t('menu.sell_back'),
+                desc = t('menu.sell_back_help')
             }
         },
         vehicleData = vehicleData
@@ -186,6 +187,7 @@ local function openHistoryTablet(bool)
         currencySymbol = config.currencySymbol or "R$",
         currencyCode = config.currencyCode or "BRL",
         bizName = zone and config.zones[zone].businessName or "Concessionária de Usados",
+        uiTranslations = getUiTranslations(),
         active = formattedActive,
         sold = formattedSold,
         sellerData = {
@@ -215,6 +217,7 @@ local function openSellContract(bool)
         currencyCode = config.currencyCode or "BRL",
         bizName = config.zones[zone].businessName,
         dealerFee = config.dealerFee or 0,
+        uiTranslations = getUiTranslations(),
         sellerData = {
             firstname = QBX.PlayerData.charinfo.firstname,
             lastname = QBX.PlayerData.charinfo.lastname,
@@ -225,9 +228,9 @@ local function openSellContract(bool)
             model = GetDisplayNameFromVehicleModel(GetEntityModel(veh)):lower(),
             plate = qbx.getVehiclePlate(veh),
             fuel = math.floor(GetVehicleFuelLevel(veh)),
-            engine = math.floor(GetVehicleEngineHealth(veh) / 10), -- Simulating KM/Condition
+            engine = math.floor(GetVehicleEngineHealth(veh) / 10),
             body = math.floor(GetVehicleBodyHealth(veh) / 10),
-            color = "Personalizada" -- Can be expanded later
+            color = "Personalizada"
         }
     })
 end
@@ -240,6 +243,7 @@ local function openBuyContract(sellerData, vehicleData)
         currencyCode = config.currencyCode or "BRL",
         showTakeBackOption = sellerData.charinfo.firstname == QBX.PlayerData.charinfo.firstname and sellerData.charinfo.lastname == QBX.PlayerData.charinfo.lastname,
         bizName = config.zones[zone].businessName,
+        uiTranslations = getUiTranslations(),
         sellerData = {
             firstname = sellerData.charinfo.firstname,
             lastname = sellerData.charinfo.lastname,

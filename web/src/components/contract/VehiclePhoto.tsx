@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocale } from '../../context/LocaleContext';
 
 interface VehiclePhotoProps {
   url?: string;
@@ -7,6 +8,7 @@ interface VehiclePhotoProps {
 
 export const VehiclePhoto: React.FC<VehiclePhotoProps> = ({ url, model }) => {
   const [hasError, setHasError] = React.useState(false);
+  const { t } = useLocale();
 
   return (
     <div className="relative group">
@@ -23,12 +25,12 @@ export const VehiclePhoto: React.FC<VehiclePhotoProps> = ({ url, model }) => {
             <div className="w-10 h-10 border-2 border-zinc-200 rounded-full flex items-center justify-center">
               <span className="text-xl font-bold opacity-20">V</span>
             </div>
-            <span className="text-[8px] text-center font-bold uppercase tracking-widest opacity-40 italic px-2">Imagem Indisponível</span>
+            <span className="text-[8px] text-center font-bold uppercase tracking-widest opacity-40 italic px-2">{t('contract_photo_unavailable')}</span>
           </div>
         )}
       </div>
       <div className="mt-1 text-center">
-        <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">Fig. I - Registro do Veículo</span>
+        <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">{t('contract_photo_fig')}</span>
       </div>
     </div>
   );

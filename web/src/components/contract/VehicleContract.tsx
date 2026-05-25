@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ContractData } from '../../types/contract';
 import { ContractHeader } from './ContractHeader';
+import { useLocale } from '../../context/LocaleContext';
 import { VehiclePhoto } from './VehiclePhoto';
 import { VehicleInfo } from './VehicleInfo';
 import { SellerInfo } from './SellerInfo';
@@ -19,6 +20,7 @@ interface VehicleContractProps {
 export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfirm, onCancel, readOnly = false }) => {
   const [isSigned, setIsSigned] = useState(readOnly);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { t } = useLocale();
 
   const handleSign = () => {
     if (readOnly || isProcessing || isSigned) return;
@@ -62,7 +64,7 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
         <div className="mt-4 pt-4 border-t border-zinc-100">
           <SignatureArea 
             seller={data.seller} 
-            buyerName={isSigned ? (data.buyer ? `${data.buyer.firstname} ${data.buyer.lastname}` : "Comprador Autorizado") : undefined}
+            buyerName={isSigned ? (data.buyer ? `${data.buyer.firstname} ${data.buyer.lastname}` : t('contract_authorized_buyer')) : undefined}
             date={data.date} 
             onSign={handleSign}
             isSigned={isSigned}
@@ -74,9 +76,9 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
       {/* Exit Hint */}
       <div className="absolute bottom-6 text-white/30 text-[10px] uppercase tracking-widest font-bold">
         {readOnly ? (
-          <span>Pressione <span className="text-white/60">ESC</span> para voltar</span>
+          <span>{t('contract_press_esc_back')}</span>
         ) : (
-          <span>Pressione <span className="text-white/60">ESC</span> para cancelar e sair</span>
+          <span>{t('contract_press_esc_cancel')}</span>
         )}
       </div>
     </div>

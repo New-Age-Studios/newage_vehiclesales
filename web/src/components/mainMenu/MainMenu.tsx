@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Car, Coins, X, ArrowRight, FileText } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useLocale } from '../../context/LocaleContext';
 
 interface MenuOption {
   title: string;
@@ -43,6 +44,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const { formatPrice: format } = useCurrency();
+  const { t } = useLocale();
 
   return (
     <div 
@@ -59,7 +61,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 {data.bizName}
               </h1>
               <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">
-                Opções do Proprietário
+                {t('main_menu_subtitle')}
               </p>
             </div>
             <button 
@@ -157,39 +159,39 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         /* Confirmation View */
         data.vehicleData && (
           <div className="flex flex-col space-y-6">
-             <div className="flex items-center justify-between border-b border-zinc-800/80 pb-5">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Confirmar Venda</h3>
+              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-5">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{t('confirm_sell')}</h3>
                 <button onClick={() => setShowConfirm(false)} className="text-zinc-600 hover:text-white transition-colors focus:outline-none">
                    <X size={20} />
                 </button>
              </div>
              
-             <p className="text-zinc-500 text-sm leading-relaxed">
-                Você está prestes a vender o veículo <span className="text-white font-bold">{data.vehicleData.name.toUpperCase()}</span> ({data.vehicleData.plate}) de volta para a concessionária.
-             </p>
+             <p className="text-zinc-500 text-sm leading-relaxed" dangerouslySetInnerHTML={{
+                __html: t('sell_back_desc_confirm').replace('%s', `<span class="text-white font-bold">${data.vehicleData.name.toUpperCase()}</span>`).replace('%s', data.vehicleData.plate)
+             }} />
 
              {/* Error/Warning States */}
              {!data.vehicleData.isOwned ? (
                <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-xs font-semibold leading-relaxed">
-                 Atenção: Você não é o proprietário deste veículo e não pode vendê-lo.
+                 {t('sell_back_warning_not_owner')}
                </div>
              ) : data.vehicleData.hasFinancing ? (
                <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-xs font-semibold leading-relaxed">
-                 Atenção: Você deve quitar o financiamento deste veículo antes de vendê-lo.
+                 {t('sell_back_warning_financing')}
                </div>
              ) : (
                <div className="bg-zinc-900 p-5 rounded-2xl space-y-3 border border-zinc-800 shadow-inner">
                   <div className="flex justify-between text-[10px]">
-                    <span className="text-zinc-500 uppercase font-black tracking-tighter">Valor de Tabela</span>
+                    <span className="text-zinc-500 uppercase font-black tracking-tighter">{t('sell_back_table_price')}</span>
                     <span className="text-white font-black">{format(data.vehicleData.price)}</span>
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span className="text-zinc-500 uppercase font-black tracking-tighter">Desconto de Devolução ({100 - data.vehicleData.percentage}%)</span>
+                    <span className="text-zinc-500 uppercase font-black tracking-tighter">{t('sell_back_discount')} ({100 - data.vehicleData.percentage}%)</span>
                     <span className="text-red-400 font-bold">-{format(data.vehicleData.price - data.vehicleData.payout)}</span>
                   </div>
                   <div className="h-px bg-zinc-800/50 my-1" />
                   <div className="flex justify-between text-xs">
-                    <span className="text-zinc-400 uppercase font-black tracking-tighter">Valor a Receber</span>
+                    <span className="text-zinc-400 uppercase font-black tracking-tighter">{t('sell_back_receive')}</span>
                     <span className="text-concessionaire font-black text-sm">{format(data.vehicleData.payout)}</span>
                   </div>
                </div>
@@ -200,7 +202,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   onClick={() => setShowConfirm(false)}
                   className="flex-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest h-14 rounded-xl transition-all focus:outline-none"
                 >
-                  Revisar
+                  {t('sell_back_review')}
                 </button>
                 <button 
                   disabled={!data.vehicleData.isOwned || data.vehicleData.hasFinancing}
@@ -210,7 +212,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   }}
                   className="flex-[2] bg-concessionaire disabled:bg-zinc-900 disabled:text-zinc-600 disabled:border disabled:border-zinc-800 disabled:shadow-none hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl transition-all focus:outline-none"
                 >
-                  Vender Agora
+                  {t('sell_back_confirm')}
                 </button>
              </div>
           </div>

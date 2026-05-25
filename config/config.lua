@@ -3,6 +3,7 @@ return {
     enableSellBack = true, -- Ativa/desativa a opção de vender veículo de volta para a concessionária
     sellBackPercentage = 50, -- Porcentagem do valor do veículo pago de volta (Ex: 50 para 50% do valor padrão)
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
+    language = "en", -- Idioma do sistema e da UI (Ex: "pt-br", "en")
     
     currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
     currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")

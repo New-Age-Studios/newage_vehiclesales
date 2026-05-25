@@ -1,12 +1,14 @@
 import React from 'react';
+import { useLocale } from '../../context/LocaleContext';
 
 export const ContractFooter: React.FC = () => {
+  const { t } = useLocale();
   return (
     <div className="pt-4 border-t border-zinc-100 flex justify-between items-end">
       <div className="space-y-1">
-        <div className="text-[9px] font-black text-zinc-900 uppercase tracking-tighter">Autenticidade Garantida</div>
+        <div className="text-[9px] font-black text-zinc-900 uppercase tracking-tighter">{t('contract_authenticity')}</div>
         <div className="text-[8px] text-zinc-600 font-medium max-w-[250px] leading-tight">
-          Este documento possui validade jurídica interna. A falsificação de assinatura ou dados é crime previsto no código penal.
+          {t('contract_authenticity_desc')}
         </div>
       </div>
       

@@ -9,6 +9,7 @@ import { ContractData } from './types/contract';
 import { SaleData, SaleVehicleData } from './types/sale';
 import { mockContract } from './data/mockContract';
 import { CurrencyProvider } from './context/CurrencyContext';
+import { LocaleProvider } from './context/LocaleContext';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -23,6 +24,7 @@ const App: React.FC = () => {
 
   const [currencySymbol, setCurrencySymbol] = useState<string>('R$');
   const [currencyCode, setCurrencyCode] = useState<string>('BRL');
+  const [translations, setTranslations] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -30,6 +32,7 @@ const App: React.FC = () => {
 
       if (data.currencySymbol) setCurrencySymbol(data.currencySymbol);
       if (data.currencyCode) setCurrencyCode(data.currencyCode);
+      if (data.uiTranslations) setTranslations(data.uiTranslations);
 
       if (data.action === "buyVehicle") {
         const formattedData: ContractData = {
@@ -277,11 +280,12 @@ const App: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <CurrencyProvider symbol={currencySymbol} code={currencyCode}>
-      <div 
-        className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
-        style={{ backgroundColor: 'transparent', background: 'transparent' }}
-      >
+    <LocaleProvider translations={translations}>
+      <CurrencyProvider symbol={currencySymbol} code={currencyCode}>
+        <div 
+          className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
+          style={{ backgroundColor: 'transparent', background: 'transparent' }}
+        >
         <main 
           className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in duration-500 py-8"
           style={{ backgroundColor: 'transparent', background: 'transparent' }}
@@ -338,6 +342,7 @@ const App: React.FC = () => {
         </main>
       </div>
     </CurrencyProvider>
+  </LocaleProvider>
   );
 };
 

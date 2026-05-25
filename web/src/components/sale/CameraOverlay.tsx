@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, RotateCw, ZoomIn, Eye, Sparkles } from 'lucide-react';
+import { useLocale } from '../../context/LocaleContext';
 
 export const CameraOverlay: React.FC = () => {
   const [blink, setBlink] = useState(true);
+  const { t } = useLocale();
 
   // Blinking REC effect
   useEffect(() => {
@@ -20,7 +22,7 @@ export const CameraOverlay: React.FC = () => {
         {/* REC Indicator */}
         <div className="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-lg border border-white/10">
           <span className={`w-2.5 h-2.5 rounded-full bg-red-600 transition-opacity duration-300 ${blink ? 'opacity-100' : 'opacity-20'}`}></span>
-          <span className="font-black">MODO CAPTURA</span>
+          <span className="font-black">{t('camera_mode_capture')}</span>
         </div>
 
         {/* Battery & Storage Info */}
@@ -28,7 +30,7 @@ export const CameraOverlay: React.FC = () => {
           <span>RAW</span>
           <span>1080P</span>
           <div className="flex items-center space-x-1">
-            <span className="font-bold">BATERIA</span>
+            <span className="font-bold">{t('camera_battery')}</span>
             <div className="w-6 h-3 border border-white/40 rounded-sm p-[1px] flex items-center">
               <div className="w-full h-full bg-green-500 rounded-[1px]"></div>
             </div>
@@ -97,8 +99,8 @@ export const CameraOverlay: React.FC = () => {
               <Camera size={22} className="animate-pulse" />
             </div>
             <div>
-              <h4 className="text-sm font-black text-white uppercase tracking-tight">Fotografar Veículo</h4>
-              <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">Posicione o melhor ângulo antes de publicar</p>
+              <h4 className="text-sm font-black text-white uppercase tracking-tight">{t('camera_title')}</h4>
+              <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-0.5">{t('camera_desc')}</p>
             </div>
           </div>
 
@@ -108,7 +110,7 @@ export const CameraOverlay: React.FC = () => {
                 <kbd className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-white font-mono text-[9px] font-bold shadow-sm">MOUSE</kbd>
               </div>
               <span className="text-[8px] text-zinc-500 uppercase font-black tracking-wider mt-1.5 flex items-center gap-1">
-                <RotateCw size={8} /> Orbitar
+                <RotateCw size={8} /> {t('camera_orbit')}
               </span>
             </div>
 
@@ -117,7 +119,7 @@ export const CameraOverlay: React.FC = () => {
                 <kbd className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-white font-mono text-[9px] font-bold shadow-sm">SCROLL</kbd>
               </div>
               <span className="text-[8px] text-zinc-500 uppercase font-black tracking-wider mt-1.5 flex items-center gap-1">
-                <ZoomIn size={8} /> Zoom
+                <ZoomIn size={8} /> {t('camera_zoom')}
               </span>
             </div>
 
@@ -126,7 +128,7 @@ export const CameraOverlay: React.FC = () => {
                 <kbd className="px-2.5 py-1 rounded bg-concessionaire text-black font-mono text-[9px] font-black shadow-sm">E</kbd>
               </div>
               <span className="text-[8px] text-concessionaire uppercase font-black tracking-wider mt-1.5 flex items-center gap-1">
-                <Eye size={8} /> Capturar
+                <Eye size={8} /> {t('camera_capture')}
               </span>
             </div>
 
@@ -134,7 +136,7 @@ export const CameraOverlay: React.FC = () => {
               <div className="flex items-center space-x-1">
                 <kbd className="px-2 py-1 rounded bg-red-950/40 border border-red-900/60 text-red-400 font-mono text-[9px] font-bold shadow-sm">ESC</kbd>
               </div>
-              <span className="text-[8px] text-red-400 uppercase font-black tracking-wider mt-1.5">Cancelar</span>
+              <span className="text-[8px] text-red-400 uppercase font-black tracking-wider mt-1.5">{t('camera_cancel')}</span>
             </div>
           </div>
 

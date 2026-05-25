@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useLocale } from '../../context/LocaleContext';
 
 interface PriceBoxProps {
   price: number;
@@ -7,6 +8,7 @@ interface PriceBoxProps {
 
 export const PriceBox: React.FC<PriceBoxProps> = ({ price }) => {
   const { formatPrice } = useCurrency();
+  const { t } = useLocale();
   const formattedPrice = formatPrice(price);
 
   return (
@@ -14,14 +16,14 @@ export const PriceBox: React.FC<PriceBoxProps> = ({ price }) => {
       <div className="absolute top-0 left-0 w-1 h-full bg-concessionaire"></div>
       <div className="flex justify-between items-center">
         <div>
-          <span className="text-[9px] font-bold text-concessionaire uppercase tracking-widest block mb-0.5">Valor Total da Transação</span>
+          <span className="text-[9px] font-bold text-concessionaire uppercase tracking-widest block mb-0.5">{t('contract_total_value')}</span>
           <div className="text-xl font-serif font-bold text-concessionaire-dark">
             {formattedPrice}
           </div>
         </div>
         <div className="text-right">
-          <span className="text-[8px] font-bold text-zinc-400 uppercase block">Status</span>
-          <span className="text-[9px] font-bold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full uppercase">Pendente</span>
+          <span className="text-[8px] font-bold text-zinc-400 uppercase block">{t('contract_status')}</span>
+          <span className="text-[9px] font-bold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-full uppercase">{t('contract_status_pending')}</span>
         </div>
       </div>
     </div>

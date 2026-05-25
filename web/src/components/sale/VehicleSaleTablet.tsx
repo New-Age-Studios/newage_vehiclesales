@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SaleData, SaleVehicleData } from '../../types/sale';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useLocale } from '../../context/LocaleContext';
 import { SaleHeader } from './SaleHeader';
 import { VehiclePreview } from './VehiclePreview';
 import { VehicleSpecsGrid } from './VehicleSpecsGrid';
@@ -63,6 +64,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
   };
 
   const { formatPrice: format } = useCurrency();
+  const { t } = useLocale();
 
   return (
     <div 
@@ -74,9 +76,9 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-[28px]" onClick={() => setShowColorPicker(false)} />
           <div className="relative bg-zinc-950 border border-zinc-800 p-6 rounded-3xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300">
-             <div className="flex items-center space-x-3 mb-4">
+              <div className="flex items-center space-x-3 mb-4">
                 <Palette size={20} className="text-concessionaire" />
-                <h3 className="text-lg font-black uppercase tracking-tighter text-white">Configuração de Pintura</h3>
+                <h3 className="text-lg font-black uppercase tracking-tighter text-white">{t('paint_config')}</h3>
              </div>
              <ColorPicker 
                 color={vehicleState.colorRGB || '#FFFFFF'} 
@@ -86,7 +88,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
                 onClick={() => setShowColorPicker(false)}
                 className="w-full mt-6 bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-12"
              >
-                Aplicar Pintura
+                {t('apply_paint')}
              </Button>
           </div>
         </div>
@@ -143,50 +145,50 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-[28px]" onClick={() => setShowConfirm(false)} />
           <div className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-300">
              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Confirmar Publicação</h3>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{t('confirm_publish')}</h3>
                 <button onClick={() => setShowConfirm(false)} className="text-zinc-600 hover:text-white transition-colors">
                    <X size={20} />
                 </button>
              </div>
              
-             <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
-                Você está prestes a listar o veículo <span className="text-white font-bold">{data.vehicleData.model.toUpperCase()}</span> ({data.vehicleData.plate}) na vitrine da concessionária.
-             </p>
+             <p className="text-zinc-500 text-sm mb-6 leading-relaxed" dangerouslySetInnerHTML={{
+                __html: t('publish_desc_confirm').replace('%s', `<span class="text-white font-bold">${data.vehicleData.model.toUpperCase()}</span>`).replace('%s', data.vehicleData.plate)
+             }} />
 
              <div className="bg-zinc-900 p-5 rounded-2xl space-y-3 border border-zinc-800 shadow-inner">
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-zinc-500 uppercase font-black tracking-tighter">Valor de Venda</span>
+                  <span className="text-zinc-500 uppercase font-black tracking-tighter">{t('sale_price')}</span>
                   <span className="text-white font-black">{format(numericPrice)}</span>
                 </div>
                 {feePercentage > 0 && (
-                  <>
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-zinc-500 uppercase font-black tracking-tighter">Taxa Administrativa ({feePercentage}%)</span>
-                      <span className="text-red-400 font-bold">-{format(numericPrice * (feePercentage/100))}</span>
-                    </div>
-                    <div className="h-px bg-zinc-800/50 my-1" />
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-400 uppercase font-black tracking-tighter">Crédito Final</span>
-                      <span className="text-concessionaire font-black text-sm">{format(numericPrice * (1 - feePercentage/100))}</span>
-                    </div>
-                  </>
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-zinc-500 uppercase font-black tracking-tighter">{t('dealer_fee')} ({feePercentage}%)</span>
+                    <span className="text-red-400 font-bold">-{format(numericPrice * (feePercentage/100))}</span>
+                  </div>
                 )}
+                <div className="h-px bg-zinc-800/50 my-1" />
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400 uppercase font-black tracking-tighter">{t('final_receive')}</span>
+                  <span className="text-concessionaire font-black text-sm">{format(numericPrice - (numericPrice * (feePercentage/100)))}</span>
+                </div>
              </div>
 
-             <div className="mt-8 flex space-x-3">
-                <Button 
-                  variant="ghost"
+              <div className="flex space-x-3 mt-6">
+                <button 
                   onClick={() => setShowConfirm(false)}
-                  className="flex-1 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest h-14 rounded-xl"
+                  className="flex-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest h-14 rounded-xl transition-all"
                 >
-                  Revisar
-                </Button>
-                <Button 
-                  onClick={handleConfirm}
-                  className="flex-[2] bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl"
+                  {t('sell_back_review')}
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowConfirm(false);
+                    handleConfirm();
+                  }}
+                  className="flex-[2] bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl transition-all"
                 >
-                  Publicar Agora
-                </Button>
+                  {t('publish_ad')}
+                </button>
              </div>
           </div>
         </div>

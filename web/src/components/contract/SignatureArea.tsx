@@ -1,5 +1,6 @@
 import React from 'react';
 import { SellerData } from '../../types/contract';
+import { useLocale } from '../../context/LocaleContext';
 
 interface SignatureAreaProps {
   seller: SellerData;
@@ -9,7 +10,9 @@ interface SignatureAreaProps {
   isSigned: boolean;
 }
 
-export const SignatureArea: React.FC<SignatureAreaProps> = ({ seller, buyerName = "Aguardando...", date, onSign, isSigned }) => {
+export const SignatureArea: React.FC<SignatureAreaProps> = ({ seller, buyerName, date, onSign, isSigned }) => {
+  const { t } = useLocale();
+  const defaultBuyer = t('contract_waiting');
   return (
     <div className="space-y-4 mb-2">
       <div className="grid grid-cols-2 gap-8">
@@ -19,7 +22,7 @@ export const SignatureArea: React.FC<SignatureAreaProps> = ({ seller, buyerName 
                 {seller.firstname} {seller.lastname}
              </span>
           </div>
-          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">VENDEDOR</span>
+          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">{t('contract_seller_label')}</span>
         </div>
         
         <div className="flex flex-col items-center">
@@ -29,15 +32,15 @@ export const SignatureArea: React.FC<SignatureAreaProps> = ({ seller, buyerName 
           >
              {!isSigned ? (
                <span className="text-[8px] font-bold text-concessionaire uppercase tracking-widest animate-pulse group-hover:scale-110 transition-transform">
-                 [ Clique para Assinar ]
+                 {t('contract_click_to_sign')}
                </span>
              ) : (
                <span className="font-['Alex_Brush'] text-concessionaire text-2xl select-none animate-signature leading-none mb-[-2px]">
-                 {buyerName || "Assinado"}
+                 {buyerName || t('contract_signed')}
                </span>
              )}
           </div>
-          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">COMPRADOR</span>
+          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">{t('contract_buyer_label')}</span>
         </div>
       </div>
       
