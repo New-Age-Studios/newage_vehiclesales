@@ -4,7 +4,6 @@ import { VehicleSaleTablet } from './components/sale/VehicleSaleTablet';
 import { ContractData } from './types/contract';
 import { SaleData } from './types/sale';
 import { mockContract } from './data/mockContract';
-import { mockSaleVehicle } from './data/mockSaleVehicle';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -65,11 +64,7 @@ const App: React.FC = () => {
     
     // For development testing
     if (import.meta.env.DEV) {
-      // setTimeout(() => {
-      //   setMode('sell');
-      //   setSaleData(mockSaleVehicle);
-      //   setVisible(true);
-      // }, 1000);
+      // Dev testing blocks can go here
     }
 
     return () => window.removeEventListener("message", handleMessage);

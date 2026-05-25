@@ -28,9 +28,7 @@ ui_page 'html/index.html'
 files {
     'locales/*.json',
     'html/index.html',
-    'html/assets/*',
-    'html/logo.svg',
-    'html/papel.jpg'
+    'html/assets/*'
 }
 
 lua54 'yes'

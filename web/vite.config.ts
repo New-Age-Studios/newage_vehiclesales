@@ -8,7 +8,7 @@ export default defineConfig({
   base: './',
   build: {
     outDir: '../html',
-    emptyOutDir: false, // Keep the old files just in case, but we will eventually replace them
+    emptyOutDir: true, // Clean old files on each build
   },
   resolve: {
     alias: {
