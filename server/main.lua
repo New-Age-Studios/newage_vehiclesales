@@ -8,6 +8,53 @@ end
 
 local busyVehicles = {}
 
+MySQL.ready(function()
+    MySQL.query([[
+        CREATE TABLE IF NOT EXISTS `newage_vehiclesales_history` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `seller` varchar(50) DEFAULT NULL,
+          `buyer_name` varchar(100) DEFAULT NULL,
+          `buyer_citizenid` varchar(50) DEFAULT NULL,
+          `price` int(11) DEFAULT NULL,
+          `plate` varchar(50) DEFAULT NULL,
+          `model` varchar(50) DEFAULT NULL,
+          `description` longtext DEFAULT NULL,
+          `mods` text DEFAULT NULL,
+          `fuel_type` varchar(50) DEFAULT 'Gasolina',
+          `color_rgb` varchar(50) DEFAULT '#FFFFFF',
+          `is_exotic` tinyint(1) DEFAULT 0,
+          `transmission` varchar(50) DEFAULT 'Automático',
+          `photo_url` varchar(255) DEFAULT NULL,
+          `date` timestamp DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]])
+
+    -- Dynamic schema migration for photo_url column
+    CreateThread(function()
+        local function checkAndAddPhotoColumn(tableName)
+            local columns = MySQL.query.await("SHOW COLUMNS FROM `" .. tableName .. "` LIKE 'photo_url'")
+            if not columns or #columns == 0 then
+                MySQL.query.await("ALTER TABLE `" .. tableName .. "` ADD COLUMN `photo_url` varchar(255) DEFAULT NULL")
+                print(("^2[newage_vehiclesales]^7 Adicionada coluna 'photo_url' na tabela '%s'"):format(tableName))
+            end
+        end
+        checkAndAddPhotoColumn("newage_vehiclesales")
+        checkAndAddPhotoColumn("newage_vehiclesales_history")
+    end)
+end)
+
+---@param model number
+---@return number price defaults to 0
+local function getVehPrice(model)
+    for _, v in pairs(VEHICLES) do
+        if v.hash == model then
+            return tonumber(v.price)
+        end
+    end
+    return 0
+end
+
 lib.callback.register('qbx_vehiclesales:server:setVehicleBusy', function(source, plate, isBusy)
     if isBusy then
         if busyVehicles[plate] and busyVehicles[plate] ~= source then
@@ -75,6 +122,13 @@ lib.callback.register('qbx_vehiclesales:server:checkVehicleOwner', function(sour
     return false
 end)
 
+lib.callback.register('qbx_vehiclesales:server:getVehicleSellBackPrice', function(_, modelHash)
+    local price = getVehPrice(modelHash)
+    local percentage = config.sellBackPercentage or 50
+    local payout = math.floor(price * (percentage / 100))
+    return price, payout, percentage
+end)
+
 RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     local src = source
     local player = exports.qbx_core:GetPlayer(src)
@@ -101,7 +155,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     local src = source
     local player = exports.qbx_core:GetPlayer(src)
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
-    MySQL.insert('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
+    MySQL.insert('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
         vehicleData.desc, 
@@ -112,22 +166,12 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         vehicleData.fuelType or 'Gasolina',
         vehicleData.colorRGB or '#FFFFFF',
         vehicleData.isExotic and 1 or 0,
-        vehicleData.transmission or 'Automático'
+        vehicleData.transmission or 'Automático',
+        vehicleData.photoUrl
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
 end)
-
----@param model number
----@return number price defaults to 0
-local function getVehPrice(model)
-    for _, v in pairs(VEHICLES) do
-        if v.hash == model then
-            return tonumber(v.price)
-        end
-    end
-    return 0
-end
 
 RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
     local src = source
@@ -178,6 +222,28 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
     TriggerClientEvent('qb-occasions:client:BuyFinished', src, result[1])
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+    
+    -- Insert transaction into history before deleting the active listing
+    MySQL.insert([[
+        INSERT INTO newage_vehiclesales_history 
+        (seller, buyer_name, buyer_citizenid, price, plate, model, description, mods, fuel_type, color_rgb, is_exotic, transmission, photo_url) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        result[1].seller,
+        player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname,
+        player.PlayerData.citizenid,
+        result[1].price,
+        result[1].plate,
+        result[1].model,
+        result[1].description,
+        result[1].mods,
+        result[1].fuel_type or 'Gasolina',
+        result[1].color_rgb or '#FFFFFF',
+        result[1].is_exotic and 1 or 0,
+        result[1].transmission or 'Automático',
+        result[1].photo_url
+    })
+
     MySQL.query('DELETE FROM newage_vehiclesales WHERE plate = ? AND occasionid = ?',{result[1].plate, result[1].occasionid})
     busyVehicles[result[1].plate] = nil
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
@@ -187,3 +253,16 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
         message = (locale('mail.message'):format(sellerPayout, vehicleName))
     })
 end)
+
+lib.callback.register('qbx_vehiclesales:server:getPlayerSalesHistory', function(source)
+    local player = exports.qbx_core:GetPlayer(source)
+    if not player then return {}, {} end
+    
+    local citizenid = player.PlayerData.citizenid
+    
+    local active = MySQL.query.await('SELECT * FROM newage_vehiclesales WHERE seller = ?', {citizenid})
+    local sold = MySQL.query.await('SELECT * FROM newage_vehiclesales_history WHERE seller = ? ORDER BY date DESC', {citizenid})
+    
+    return active, sold
+end)
+

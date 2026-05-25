@@ -22,23 +22,39 @@ import { cn } from '@/lib/utils';
 
 interface VehicleSaleTabletProps {
   data: SaleData;
+  price: string;
+  setPrice: (val: string) => void;
+  description: string;
+  setDescription: (val: string) => void;
+  vehicleState: SaleVehicleData;
+  setVehicleState: React.Dispatch<React.SetStateAction<SaleVehicleData | null>>;
   onConfirm: (price: number, description: string, vehicleUpdates: SaleVehicleData) => void;
   onCancel: () => void;
 }
 
-export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ data, onConfirm, onCancel }) => {
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [vehicleState, setVehicleState] = useState(data.vehicleData);
+export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ 
+  data, 
+  price, 
+  setPrice, 
+  description, 
+  setDescription, 
+  vehicleState, 
+  setVehicleState, 
+  onConfirm, 
+  onCancel 
+}) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const feePercentage = data.dealerFee;
 
   const numericPrice = parseInt(price) || 0;
-  const isValid = numericPrice > 0;
+  const isValid = numericPrice > 0 && !!vehicleState.photoUrl;
 
   const handleUpdateVehicle = (updates: Partial<SaleVehicleData>) => {
-    setVehicleState(prev => ({ ...prev, ...updates }));
+    setVehicleState(prev => {
+      if (!prev) return prev;
+      return { ...prev, ...updates };
+    });
   };
 
   const handleConfirm = () => {
@@ -49,7 +65,10 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ data, onCo
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="relative w-[950px] h-[650px] bg-zinc-950 rounded-[40px] border-[12px] border-zinc-900 shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col p-8 pb-10 select-none">
+    <div 
+      className="relative w-[950px] h-[650px] bg-zinc-950 rounded-[40px] border-[12px] border-zinc-900 shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col p-8 pb-10 select-none"
+      style={{ transform: 'translate3d(0, 0, 0)' }}
+    >
       {/* Local Color Picker Overlay (Notification Style) */}
       {showColorPicker && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300">
@@ -65,7 +84,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ data, onCo
              />
              <Button 
                 onClick={() => setShowColorPicker(false)}
-                className="w-full mt-6 bg-concessionaire hover:bg-concessionaire/90 text-black font-black uppercase text-[10px] tracking-widest h-12"
+                className="w-full mt-6 bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-12"
              >
                 Aplicar Pintura
              </Button>
@@ -86,7 +105,17 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ data, onCo
           {/* Left Side: Preview and Info */}
           <div className="flex flex-col h-full">
             <div className="space-y-4">
-              <VehiclePreview model={vehicleState.model} />
+              <VehiclePreview 
+                model={vehicleState.model} 
+                photoUrl={vehicleState.photoUrl} 
+                onTakePhoto={() => {
+                  fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/startVehicleCamera`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plate: vehicleState.plate })
+                  });
+                }}
+              />
               <VehicleSpecsGrid vehicle={vehicleState} onUpdate={handleUpdateVehicle} onOpenColorPicker={() => setShowColorPicker(true)} />
             </div>
           </div>
@@ -154,7 +183,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({ data, onCo
                 </Button>
                 <Button 
                   onClick={handleConfirm}
-                  className="flex-[2] bg-concessionaire hover:bg-concessionaire/90 text-black font-black uppercase text-[10px] tracking-widest h-14 rounded-xl shadow-[0_4px_15px_rgba(34,197,94,0.3)]"
+                  className="flex-[2] bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl"
                 >
                   Publicar Agora
                 </Button>

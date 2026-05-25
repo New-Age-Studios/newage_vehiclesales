@@ -13,6 +13,8 @@
         "view_contract_int": "[E] View Contract",
         "sell_vehicle": "Sell Vehicle",
         "sell_vehicle_help": "Sell vehicle to fellow citizens!",
+        "my_sales": "My Listings & History",
+        "my_sales_help": "Manage your active listings and view sales history!",
         "sell_back": "Sell back car!",
         "sell_back_help": "Sell your car straight back for a reduced price!",
         "interaction": "[E] Sell Vehicle"

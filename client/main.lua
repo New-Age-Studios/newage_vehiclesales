@@ -28,7 +28,8 @@ local function spawnOccasionsVehicles(vehicles)
                     fuelType = vehicles[i].fuel_type,
                     colorRGB = vehicles[i].color_rgb,
                     isExotic = vehicles[i].is_exotic,
-                    transmission = vehicles[i].transmission
+                    transmission = vehicles[i].transmission,
+                    photo_url = vehicles[i].photo_url
                 }
 
                 lib.setVehicleProperties(occasionVehicles[zone][i].car, json.decode(vehicles[i].mods))
@@ -82,6 +83,30 @@ local function openMainMenu(bool)
         return
     end
 
+    local veh = cache.vehicle
+    local vehicleData = nil
+
+    if veh then
+        local modelHash = GetEntityModel(veh)
+        local modelName = GetDisplayNameFromVehicleModel(modelHash):lower()
+        -- Capitalize first letter of vehicle name
+        local formattedName = modelName:gsub("^%l", string.upper)
+        local plate = qbx.getVehiclePlate(veh)
+
+        local owned, balance = lib.callback.await('qbx_vehiclesales:server:checkVehicleOwner', false, plate)
+        local price, payout, percentage = lib.callback.await('qbx_vehiclesales:server:getVehicleSellBackPrice', false, modelHash)
+
+        vehicleData = {
+            name = formattedName,
+            plate = plate,
+            price = price or 0,
+            payout = payout or 0,
+            percentage = percentage or 50,
+            isOwned = owned == true,
+            hasFinancing = (balance and balance > 0) == true
+        }
+    end
+
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = 'mainMenu',
@@ -96,9 +121,78 @@ local function openMainMenu(bool)
                 title = locale('menu.sell_back'),
                 desc = locale('menu.sell_back_help')
             }
+        },
+        vehicleData = vehicleData
+    })
+end
+
+local function openHistoryTablet(bool)
+    if not bool then
+        SetNuiFocus(false, false)
+        SendNUIMessage({ action = 'close' })
+        return
+    end
+
+    local active, sold = lib.callback.await('qbx_vehiclesales:server:getPlayerSalesHistory', false)
+
+    local formattedActive = {}
+    if active then
+        for i = 1, #active do
+            local item = active[i]
+            table.insert(formattedActive, {
+                oid = item.occasionid,
+                plate = item.plate,
+                model = item.model,
+                price = item.price,
+                description = item.description,
+                mods = item.mods,
+                fuelType = item.fuel_type,
+                colorRGB = item.color_rgb,
+                isExotic = item.is_exotic == 1 or item.is_exotic == true,
+                transmission = item.transmission,
+                photoUrl = item.photo_url
+            })
+        end
+    end
+
+    local formattedSold = {}
+    if sold then
+        for i = 1, #sold do
+            local item = sold[i]
+            table.insert(formattedSold, {
+                id = item.id,
+                buyerName = item.buyer_name,
+                buyerCitizenId = item.buyer_citizenid,
+                plate = item.plate,
+                model = item.model,
+                price = item.price,
+                description = item.description,
+                mods = item.mods,
+                fuelType = item.fuel_type,
+                colorRGB = item.color_rgb,
+                isExotic = item.is_exotic == 1 or item.is_exotic == true,
+                transmission = item.transmission,
+                photoUrl = item.photo_url,
+                date = item.date
+            })
+        end
+    end
+
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = 'openHistoryTablet',
+        bizName = zone and config.zones[zone].businessName or "Concessionária de Usados",
+        active = formattedActive,
+        sold = formattedSold,
+        sellerData = {
+            firstname = QBX.PlayerData.charinfo.firstname,
+            lastname = QBX.PlayerData.charinfo.lastname,
+            account = QBX.PlayerData.charinfo.account,
+            phone = QBX.PlayerData.charinfo.phone
         }
     })
 end
+
 
 local function openSellContract(bool)
     if not bool then
@@ -154,7 +248,8 @@ local function openBuyContract(sellerData, vehicleData)
             fuelType = vehicleData.fuelType,
             colorRGB = vehicleData.colorRGB,
             isExotic = vehicleData.isExotic == 1 or vehicleData.isExotic == true,
-            transmission = vehicleData.transmission
+            transmission = vehicleData.transmission,
+            photoUrl = vehicleData.photo_url or vehicleData.photoUrl
         },
         model = vehicleData.model,
         plate = vehicleData.plate
@@ -184,6 +279,7 @@ local function sellData(data, plate)
     vehicleData.colorRGB = data.vehicleData.colorRGB
     vehicleData.isExotic = data.vehicleData.isExotic
     vehicleData.transmission = data.vehicleData.transmission
+    vehicleData.photoUrl = data.vehicleData.photoUrl
     
     TriggerServerEvent('qb-occasions:server:sellVehicle', data.price, vehicleData)
     sellVehicleWait(data.price)
@@ -312,6 +408,162 @@ RegisterNUICallback('sellVehicle', function(data, cb)
     cb('ok')
 end)
 
+local cameraActive = false
+
+RegisterNUICallback('startVehicleCamera', function(_, cb)
+    local ped = PlayerPedId()
+    local veh = cache.vehicle
+    if not veh or veh == 0 then
+        exports.qbx_core:Notify("Você não está em um veículo!", "error")
+        SendNUIMessage({ action = 'showTabletAfterPhoto' })
+        SetNuiFocus(true, true)
+        cb('ok')
+        return
+    end
+
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'openCameraOverlay' })
+    
+    Wait(500)
+
+    cameraActive = true
+    FreezeEntityPosition(veh, true) -- Freeze vehicle position
+    
+    local radius = 6.0
+    local angleX = 0.0 -- horizontal orbit angle around car
+    local angleY = 15.0 -- vertical orbit pitch
+    local fov = 50.0
+    
+    local dict = "anim@mp_player_intselfiethumbs_up"
+    RequestAnimDict(dict)
+    while not HasAnimDictLoaded(dict) do Wait(10) end
+    TaskPlayAnim(ped, dict, "idle_a", 8.0, 8.0, -1, 49, 0, false, false, false)
+    
+    SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
+    HideHudAndRadarThisFrame()
+    
+    local customCam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
+    SetCamFov(customCam, fov)
+    SetCamActive(customCam, true)
+    RenderScriptCams(true, false, 0, true, false)
+
+    CreateThread(function()
+        while cameraActive do
+            Wait(0)
+            
+            HideHudComponentThisFrame(1)
+            HideHudAndRadarThisFrame()
+            DisableFrontendThisFrame() -- Disable GTA pause/frontend menu this frame
+            
+            -- Block standard look / attack inputs
+            DisableControlAction(0, 1, true)
+            DisableControlAction(0, 2, true)
+            DisableControlAction(0, 24, true)
+            DisableControlAction(0, 25, true)
+            DisableControlAction(0, 37, true)
+            DisableControlAction(0, 199, true)
+            DisableControlAction(0, 200, true)
+            DisableControlAction(0, 177, true) -- Esc / Cancel / Backspace
+            DisableControlAction(0, 202, true) -- Cancel / Backspace
+            DisableControlAction(0, 38, true)  -- E key
+            
+            -- Block exiting the vehicle
+            DisableControlAction(0, 75, true) -- INPUT_VEH_EXIT
+            
+            -- Block vehicle movement / controls
+            DisableControlAction(0, 71, true) -- Accelerate
+            DisableControlAction(0, 72, true) -- Brake/Reverse
+            DisableControlAction(0, 59, true) -- Steering
+            DisableControlAction(0, 60, true) -- Steering UD
+            DisableControlAction(0, 76, true) -- Handbrake
+            
+            -- Read mouse raw inputs
+            local rightAxisX = GetDisabledControlNormal(0, 220)
+            local rightAxisY = GetDisabledControlNormal(0, 221)
+            
+            -- Orbit angles update
+            angleX = angleX + rightAxisX * -8.0
+            angleY = math.max(math.min(angleY + rightAxisY * 8.0, 80.0), -5.0)
+            
+            -- Radius Zoom (Scroll wheel)
+            if IsDisabledControlJustPressed(0, 241) or IsControlJustPressed(0, 241) then -- Scroll Up
+                radius = math.max(radius - 0.4, 3.0)
+            end
+            if IsDisabledControlJustPressed(0, 242) or IsControlJustPressed(0, 242) then -- Scroll Down
+                radius = math.min(radius + 0.4, 10.0)
+            end
+            
+            -- Calculate polar position relative to vehicle
+            local radX = math.rad(angleX)
+            local radY = math.rad(angleY)
+            local xOffset = radius * math.cos(radY) * math.sin(radX)
+            local yOffset = radius * math.cos(radY) * math.cos(radX)
+            local zOffset = radius * math.sin(radY) + 0.5
+            
+            local camCoords = GetOffsetFromEntityInWorldCoords(veh, xOffset, yOffset, zOffset)
+            SetCamCoord(customCam, camCoords.x, camCoords.y, camCoords.z)
+            PointCamAtEntity(customCam, veh, 0.0, 0.0, 0.2, true)
+            
+            if IsDisabledControlJustPressed(0, 38) or IsControlJustPressed(0, 38) then -- E
+                cameraActive = false
+                exports.qbx_core:Notify("Enviando foto...", "primary")
+                
+                Wait(200) -- delay for clean frame
+                
+                exports['screenshot-basic']:requestScreenshotUpload(config.FiveManageEndpoint, "file", {
+                    headers = {
+                        ["Authorization"] = config.FiveManageToken
+                    }
+                }, function(res)
+                    RenderScriptCams(false, false, 0, true, false)
+                    DestroyCam(customCam, false)
+                    ClearPedTasks(ped)
+                    FreezeEntityPosition(veh, false) -- Unfreeze vehicle position
+                    Wait(100)
+ 
+                    local response = json.decode(res)
+                    if response and response.data and response.data.url then
+                        local imageUrl = response.data.url
+                        exports.qbx_core:Notify("Foto enviada com sucesso!", "success")
+                        SendNUIMessage({ 
+                            action = 'showTabletAfterPhoto', 
+                            url = imageUrl 
+                        })
+                    else
+                        print("^1[newage_vehiclesales]^7 Falha no upload:", res)
+                        exports.qbx_core:Notify("Erro ao enviar foto. Tente novamente.", "error")
+                        SendNUIMessage({ action = 'showTabletAfterPhoto' })
+                    end
+                    SetNuiFocus(true, true)
+                end)
+            elseif IsDisabledControlJustPressed(0, 177) or IsDisabledControlJustPressed(0, 202) or IsControlJustPressed(0, 177) or IsControlJustPressed(0, 202) then -- ESC / Backspace
+                cameraActive = false
+                
+                -- Swallow pause menu inputs for the next 15 frames to consume residual key release events
+                CreateThread(function()
+                    for i = 1, 15 do
+                        DisableControlAction(0, 177, true)
+                        DisableControlAction(0, 202, true)
+                        DisableControlAction(0, 199, true)
+                        DisableControlAction(0, 200, true)
+                        DisableFrontendThisFrame()
+                        Wait(0)
+                    end
+                end)
+
+                RenderScriptCams(false, false, 0, true, false)
+                DestroyCam(customCam, false)
+                ClearPedTasks(ped)
+                FreezeEntityPosition(veh, false) -- Unfreeze vehicle position
+                Wait(100)
+                SendNUIMessage({ action = 'showTabletAfterPhoto' })
+                SetNuiFocus(true, true)
+            end
+        end
+    end)
+    cb('ok')
+end)
+
 RegisterNUICallback('selectSell', function(_, cb)
     SetNuiFocus(false, false)
     cb('ok')
@@ -322,6 +574,18 @@ RegisterNUICallback('selectSellBack', function(_, cb)
     SetNuiFocus(false, false)
     cb('ok')
     TriggerEvent('qb-occasions:client:SellBackCar')
+end)
+
+RegisterNUICallback('cancelSale', function(data, cb)
+    TriggerServerEvent('qb-occasions:server:ReturnVehicle', data)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+RegisterNUICallback('selectHistory', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+    openHistoryTablet(true)
 end)
 
 local currentBusyPlate = nil
@@ -508,23 +772,136 @@ CreateThread(function()
     end
 end)
 
+local historyPeds = {}
+local historyProps = {}
+local historyZones = {}
+
+local function cleanupHistoryLocations()
+    for i = 1, #historyPeds do
+        if DoesEntityExist(historyPeds[i]) then
+            exports.ox_target:removeLocalEntity(historyPeds[i], 'Acessar Histórico e Anúncios')
+            DeleteEntity(historyPeds[i])
+        end
+    end
+    table.wipe(historyPeds)
+
+    for i = 1, #historyProps do
+        if DoesEntityExist(historyProps[i]) then
+            DeleteEntity(historyProps[i])
+        end
+    end
+    table.wipe(historyProps)
+
+    for i = 1, #historyZones do
+        exports.ox_target:removeZone(historyZones[i])
+    end
+    table.wipe(historyZones)
+end
+
+local function setupHistoryLocations()
+    cleanupHistoryLocations()
+    if not config.historyLocations then return end
+
+    for i, loc in ipairs(config.historyLocations) do
+        local label = loc.targetLabel or "Acessar Histórico e Anúncios"
+        local icon = loc.targetIcon or "fas fa-history"
+        local distance = loc.distance or 3.0
+
+        if loc.usePed then
+            local model = joaat(loc.pedModel or 's_m_m_autoshop_01')
+            lib.requestModel(model)
+
+            local coords = loc.coords
+            local ped = CreatePed(4, model, coords.x, coords.y, coords.z - 1.0, coords.w, false, false)
+
+            SetPedDefaultComponentVariation(ped)
+            SetEntityInvincible(ped, true)
+            SetBlockingOfNonTemporaryEvents(ped, true)
+            FreezeEntityPosition(ped, true)
+            SetModelAsNoLongerNeeded(model)
+
+            table.insert(historyPeds, ped)
+
+            if loc.pedProp then
+                local propModel = joaat(loc.pedProp)
+                lib.requestModel(propModel)
+
+                local prop = CreateObject(propModel, coords.x, coords.y, coords.z, false, false, false)
+                AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, 60309), 0.03, 0.002, -0.0, 10.0, 160.0, 0.0, true, true, false, true, 2, true)
+                SetModelAsNoLongerNeeded(propModel)
+
+                table.insert(historyProps, prop)
+            end
+
+            if loc.pedAnimDict and loc.pedAnimName then
+                lib.requestAnimDict(loc.pedAnimDict)
+                TaskPlayAnim(ped, loc.pedAnimDict, loc.pedAnimName, 8.0, -8.0, -1, 49, 0, false, false, false)
+                RemoveAnimDict(loc.pedAnimDict)
+            end
+
+            exports.ox_target:addLocalEntity(ped, {
+                {
+                    icon = icon,
+                    label = label,
+                    onSelect = function()
+                        openHistoryTablet(true)
+                    end,
+                    distance = distance
+                }
+            })
+        else
+            local zoneId = exports.ox_target:addBoxZone({
+                coords = vec3(loc.coords.x, loc.coords.y, loc.coords.z),
+                size = loc.size or vec3(1.5, 1.5, 2.0),
+                rotation = loc.coords.w or 0.0,
+                debug = false,
+                options = {
+                    {
+                        icon = icon,
+                        label = label,
+                        onSelect = function()
+                            openHistoryTablet(true)
+                        end,
+                        distance = distance
+                    }
+                }
+            })
+            table.insert(historyZones, zoneId)
+        end
+    end
+end
+
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     createZones()
+    setupHistoryLocations()
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
     deleteZones()
+    cleanupHistoryLocations()
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)
     if cache.resource == resourceName then
         createZones()
+        setupHistoryLocations()
     end
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
     if cache.resource == resourceName then
+        cameraActive = false
+        if cache.vehicle and cache.vehicle ~= 0 then
+            FreezeEntityPosition(cache.vehicle, false)
+        end
         deleteZones()
+        cleanupHistoryLocations()
         despawnOccasionsVehicles()
     end
 end)
+
+RegisterCommand('minhasvendas', function()
+    if QBX and QBX.PlayerData and QBX.PlayerData.charinfo then
+        openHistoryTablet(true)
+    end
+end, false)

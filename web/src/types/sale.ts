@@ -11,6 +11,7 @@ export interface SaleVehicleData {
   transmission: 'Manual' | 'Automático';
   price?: number;
   description?: string;
+  photoUrl?: string;
 }
 
 export interface SaleSellerData {

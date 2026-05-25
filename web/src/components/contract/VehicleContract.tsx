@@ -13,17 +13,19 @@ interface VehicleContractProps {
   data: ContractData;
   onConfirm: () => void;
   onCancel: () => void;
+  readOnly?: boolean;
 }
 
-export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfirm, onCancel }) => {
-  const [isSigned, setIsSigned] = useState(false);
+export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfirm, onCancel, readOnly = false }) => {
+  const [isSigned, setIsSigned] = useState(readOnly);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSign = () => {
-    if (isProcessing || isSigned) return;
+    if (readOnly || isProcessing || isSigned) return;
     
     setIsSigned(true);
     setIsProcessing(true);
+
     
     // Simulate signing time before confirming
     setTimeout(() => {
@@ -71,7 +73,11 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
 
       {/* Exit Hint */}
       <div className="absolute bottom-6 text-white/30 text-[10px] uppercase tracking-widest font-bold">
-        Pressione <span className="text-white/60">ESC</span> para cancelar e sair
+        {readOnly ? (
+          <span>Pressione <span className="text-white/60">ESC</span> para voltar</span>
+        ) : (
+          <span>Pressione <span className="text-white/60">ESC</span> para cancelar e sair</span>
+        )}
       </div>
     </div>
   );

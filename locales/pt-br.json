@@ -13,6 +13,8 @@
         "view_contract_int": "[E] Ver Contrato",
         "sell_vehicle": "Vender Veículo",
         "sell_vehicle_help": "Venda seu veículo para outros cidadãos!",
+        "my_sales": "Anúncios e Histórico",
+        "my_sales_help": "Gerencie seus anúncios ativos e veja seu histórico de vendas!",
         "sell_back": "Vender de volta!",
         "sell_back_help": "Venda seu carro de volta por um preço reduzido!",
         "interaction": "[E] Vender Veículo"

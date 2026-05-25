@@ -4,6 +4,25 @@ return {
     sellBackPercentage = 50, -- Porcentagem do valor do veículo pago de volta (Ex: 50 para 50% do valor padrão)
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
     
+    FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
+    FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
+    
+    -- Configuração de locais para acessar o Tablet de Anúncios e Histórico de Vendas (/minhasvendas)
+    -- É possível definir múltiplos locais e escolher se haverá um NPC (usePed = true) ou apenas zona de Target (usePed = false)
+    historyLocations = {
+        {
+            coords = vec4(1224.23, 2729.02, 38.0, 180.0), -- Coordenadas (x, y, z, heading)
+            usePed = true,                             -- Se true, spawna o NPC. Se false, usa apenas zona do ox_target
+            pedModel = 's_m_m_autoshop_02',             -- Modelo do Ped (NPC)
+            pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Animação
+            pedAnimName = 'base',                       -- Nome da animação
+            pedProp = 'prop_cs_tablet',                  -- Prop do tablet na mão
+            targetLabel = "Acessar Histórico e Anúncios", -- Texto exibido no target
+            targetIcon = "fas fa-history",               -- Ícone exibido no target
+            distance = 2.5                              -- Distância máxima de interação
+        },
+    },
+
     zones = {
         sandyOccasions = {
             businessName = "Concessionária de Usados",

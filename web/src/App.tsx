@@ -2,16 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { VehicleContract } from './components/contract/VehicleContract';
 import { VehicleSaleTablet } from './components/sale/VehicleSaleTablet';
 import { MainMenu } from './components/mainMenu/MainMenu';
+import { VehicleHistoryTablet, HistoryTabletData } from './components/sale/VehicleHistoryTablet';
+import { CameraOverlay } from './components/sale/CameraOverlay';
+import { ActiveListing, SoldVehicle } from './types/history';
 import { ContractData } from './types/contract';
-import { SaleData } from './types/sale';
+import { SaleData, SaleVehicleData } from './types/sale';
 import { mockContract } from './data/mockContract';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  const [mode, setMode] = useState<'buy' | 'sell' | 'menu'>('buy');
+  const [mode, setMode] = useState<'buy' | 'sell' | 'menu' | 'history' | 'camera'>('buy');
   const [contractData, setContractData] = useState<ContractData | null>(null);
   const [saleData, setSaleData] = useState<SaleData | null>(null);
+  const [salePrice, setSalePrice] = useState<string>('');
+  const [saleDescription, setSaleDescription] = useState<string>('');
+  const [saleVehicleState, setSaleVehicleState] = useState<SaleVehicleData | null>(null);
   const [menuData, setMenuData] = useState<any | null>(null);
+  const [historyData, setHistoryData] = useState<HistoryTabletData | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -26,7 +33,7 @@ const App: React.FC = () => {
             plate: data.plate || "SEM PLACA",
             description: data.vehicleData?.desc || "O vendedor não preencheu nenhuma descrição.",
             price: data.vehicleData?.price || 0,
-            photoUrl: `https://raw.githubusercontent.com/mriqbox/ui-kit/main/assets/vehicles/${data.model?.toLowerCase()}.jpg` || mockContract.vehicle.photoUrl,
+            photoUrl: data.vehicleData?.photoUrl || `https://raw.githubusercontent.com/mriqbox/ui-kit/main/assets/vehicles/${data.model?.toLowerCase()}.jpg` || mockContract.vehicle.photoUrl,
             fuelType: data.vehicleData?.fuelType,
             colorRGB: data.vehicleData?.colorRGB,
             isExotic: data.vehicleData?.isExotic,
@@ -50,6 +57,9 @@ const App: React.FC = () => {
         setVisible(true);
       } else if (data.action === "sellVehicle") {
         setMode('sell');
+        setSalePrice('');
+        setSaleDescription('');
+        setSaleVehicleState(data.vehicleData);
         setSaleData({
           bizName: data.bizName || "CONCESSIONÁRIA",
           sellerData: data.sellerData,
@@ -62,8 +72,43 @@ const App: React.FC = () => {
         setMenuData({
           bizName: data.bizName || "CONCESSIONÁRIA",
           enableSellBack: data.enableSellBack !== false,
-          options: data.options
+          options: data.options,
+          vehicleData: data.vehicleData
         });
+        setVisible(true);
+      } else if (data.action === "openHistoryTablet") {
+        setMode('history');
+        setHistoryData({
+          bizName: data.bizName || "Concessionária de Usados",
+          active: data.active || [],
+          sold: data.sold || [],
+          sellerData: data.sellerData
+        });
+        setVisible(true);
+      } else if (data.action === "openCameraOverlay") {
+        setMode('camera');
+        setVisible(true);
+      } else if (data.action === "showTabletAfterPhoto") {
+        setMode('sell');
+        if (data.url) {
+          setSaleVehicleState(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              photoUrl: data.url
+            };
+          });
+          setSaleData(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              vehicleData: {
+                ...prev.vehicleData,
+                photoUrl: data.url
+              }
+            };
+          });
+        }
         setVisible(true);
       } else if (data.action === "close") {
         setVisible(false);
@@ -112,6 +157,10 @@ const App: React.FC = () => {
   }, [visible]);
 
   const handleClose = () => {
+    if (mode === 'buy' && contractData?.id.startsWith('HIST-')) {
+      setMode('history');
+      return;
+    }
     setVisible(false);
     fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/close`, {
       method: 'POST',
@@ -156,6 +205,52 @@ const App: React.FC = () => {
     setVisible(false);
   };
 
+  const handleCancelSale = (listing: ActiveListing) => {
+    fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/cancelSale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plate: listing.plate,
+        oid: listing.oid,
+        model: listing.model,
+        mods: listing.mods
+      })
+    });
+    setVisible(false);
+  };
+
+  const handleOpenContract = (sold: SoldVehicle) => {
+    const formattedData: ContractData = {
+      id: `HIST-${sold.id}`,
+      bizName: historyData?.bizName || "CONCESSIONÁRIA",
+      vehicle: {
+        model: sold.model ? (sold.model.charAt(0).toUpperCase() + sold.model.slice(1)) : "Veículo Desconhecido",
+        plate: sold.plate || "SEM PLACA",
+        description: sold.description || "Sem observações do vendedor.",
+        price: sold.price || 0,
+        photoUrl: sold.photoUrl || `https://raw.githubusercontent.com/mriqbox/ui-kit/main/assets/vehicles/${sold.model?.toLowerCase()}.jpg` || mockContract.vehicle.photoUrl,
+        fuelType: sold.fuelType,
+        colorRGB: sold.colorRGB,
+        isExotic: sold.isExotic,
+        transmission: sold.transmission
+      },
+      seller: {
+        firstname: historyData?.sellerData.firstname || "Vendedor",
+        lastname: historyData?.sellerData.lastname || "Anônimo",
+        account: historyData?.sellerData.account || "N/A",
+        phone: historyData?.sellerData.phone || "N/A"
+      },
+      buyer: {
+        firstname: sold.buyerName.split(' ')[0] || "Comprador",
+        lastname: sold.buyerName.split(' ').slice(1).join(' ') || "Autorizado"
+      },
+      date: new Date(sold.date).toLocaleString('pt-BR')
+    };
+
+    setContractData(formattedData);
+    setMode('buy');
+  };
+
   if (!visible) return null;
 
   return (
@@ -172,11 +267,18 @@ const App: React.FC = () => {
             data={contractData} 
             onConfirm={handleConfirmPurchase}
             onCancel={handleClose}
+            readOnly={contractData.id.startsWith('HIST-')}
           />
         )}
-        {mode === 'sell' && saleData && (
+        {mode === 'sell' && saleData && saleVehicleState && (
           <VehicleSaleTablet 
             data={saleData}
+            price={salePrice}
+            setPrice={setSalePrice}
+            description={saleDescription}
+            setDescription={setSaleDescription}
+            vehicleState={saleVehicleState}
+            setVehicleState={setSaleVehicleState}
             onConfirm={handleConfirmSale}
             onCancel={handleClose}
           />
@@ -186,8 +288,27 @@ const App: React.FC = () => {
             data={menuData}
             onSelectSell={handleSelectSell}
             onSelectSellBack={handleSelectSellBack}
+            onSelectHistory={() => {
+              fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/selectHistory`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+              });
+              setVisible(false);
+            }}
             onCancel={handleClose}
           />
+        )}
+        {mode === 'history' && historyData && (
+          <VehicleHistoryTablet 
+            data={historyData}
+            onCancelSale={handleCancelSale}
+            onCancel={handleClose}
+            onOpenContract={handleOpenContract}
+          />
+        )}
+        {mode === 'camera' && (
+          <CameraOverlay />
         )}
       </main>
     </div>
