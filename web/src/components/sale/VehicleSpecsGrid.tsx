@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Hash, Palette, Fuel, Gauge, Settings2 } from 'lucide-react';
 import { SaleVehicleData } from '../../types/sale';
 import { cn } from '@/lib/utils';
-import { useLocale } from '../../context/LocaleContext';
 
 interface VehicleSpecsGridProps {
   vehicle: SaleVehicleData;
@@ -12,7 +11,6 @@ interface VehicleSpecsGridProps {
 }
 
 export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onUpdate, onOpenColorPicker }) => {
-  const t = useLocale();
 
   return (
     <div className="flex flex-col h-full space-y-2 pb-2">
@@ -23,7 +21,7 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
             <Settings2 size={14} />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.model}</span>
+            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">Modelo</span>
             <span className="text-[10px] font-black text-zinc-200 uppercase truncate">{vehicle.model}</span>
           </div>
         </div>
@@ -34,7 +32,7 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
             <Hash size={14} />
           </div>
           <div className="flex flex-col">
-            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.plate}</span>
+            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">Placa</span>
             <span className="text-[10px] font-black text-zinc-200 uppercase">{vehicle.plate}</span>
           </div>
         </div>
@@ -45,7 +43,7 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
             <Gauge size={14} />
           </div>
           <div className="flex flex-col">
-            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.mileage}</span>
+            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">Quilometragem</span>
             <span className="text-[10px] font-black text-zinc-200 uppercase">{vehicle.body * 123} km</span>
           </div>
         </div>
@@ -54,11 +52,11 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
         <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex flex-col justify-center h-[48px]">
           <div className="flex items-center space-x-2 mb-0.5">
             <Fuel size={10} className="text-zinc-500" />
-            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.fuel}</span>
+            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">Combustível</span>
           </div>
           <CustomSelect 
-            value={vehicle.fuelType || t.vehicleSpecsGrid.fuelOptions[0]} 
-            options={t.vehicleSpecsGrid.fuelOptions}
+            value={vehicle.fuelType || 'Gasolina'} 
+            options={['Gasolina', 'Diesel', 'Etanol']}
             onChange={(val) => onUpdate({ fuelType: val as any })}
           />
         </div>
@@ -67,11 +65,11 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
         <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-xl flex flex-col justify-center h-[48px] col-span-2">
           <div className="flex items-center space-x-2 mb-0.5">
             <Settings2 size={10} className="text-zinc-500" />
-            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.transmission}</span>
+            <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter">Câmbio do Veículo</span>
           </div>
           <CustomSelect 
-            value={vehicle.transmission || t.vehicleSpecsGrid.transmissionOptions[1]} 
-            options={t.vehicleSpecsGrid.transmissionOptions}
+            value={vehicle.transmission || 'Automático'} 
+            options={['Manual', 'Automático']}
             onChange={(val) => onUpdate({ transmission: val as any })}
           />
         </div>
@@ -84,12 +82,12 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Palette size={14} className="text-zinc-500" />
-            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">{t.vehicleSpecsGrid.paintCustomization}</span>
+            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">Personalização de Pintura</span>
           </div>
           
           {/* Manual Exotic Toggle */}
           <div className="flex items-center space-x-2">
-             <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">{t.vehicleSpecsGrid.exoticPaint}</span>
+             <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Pintura Exótica?</span>
              <button 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -121,12 +119,12 @@ export const VehicleSpecsGrid: React.FC<VehicleSpecsGridProps> = ({ vehicle, onU
               <span className="text-[10px] font-black text-zinc-200 uppercase tracking-tighter leading-tight">
                 {vehicle.colorRGB || '#FFFFFF'}
               </span>
-              <span className="text-[7px] font-bold text-zinc-600 uppercase tracking-widest">{t.vehicleSpecsGrid.rgbDetected}</span>
+              <span className="text-[7px] font-bold text-zinc-600 uppercase tracking-widest">RGB Detectado</span>
             </div>
           </div>
           
           <div className="flex items-center space-x-2 bg-zinc-900 px-2 py-1 rounded-md border border-zinc-800 group-hover/inner:border-concessionaire/50 transition-all">
-            <span className="text-[7px] font-black text-zinc-400 group-hover/inner:text-concessionaire uppercase tracking-widest">{t.vehicleSpecsGrid.changePaint}</span>
+            <span className="text-[7px] font-black text-zinc-400 group-hover/inner:text-concessionaire uppercase tracking-widest">Alterar Cor</span>
           </div>
         </div>
       </div>

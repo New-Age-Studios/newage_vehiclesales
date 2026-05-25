@@ -5,7 +5,7 @@ return {
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
     
     currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
-    nuiLocale = "en-US", -- Idioma da interface NUI. O nome deve corresponder a um arquivo em web/src/locales/ (Ex: "pt-BR", "en-US")
+    currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")
     
     FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
     FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage

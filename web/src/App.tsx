@@ -9,7 +9,6 @@ import { ContractData } from './types/contract';
 import { SaleData, SaleVehicleData } from './types/sale';
 import { mockContract } from './data/mockContract';
 import { CurrencyProvider } from './context/CurrencyContext';
-import { LocaleProvider } from './context/LocaleContext';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -23,16 +22,14 @@ const App: React.FC = () => {
   const [historyData, setHistoryData] = useState<HistoryTabletData | null>(null);
 
   const [currencySymbol, setCurrencySymbol] = useState<string>('R$');
-  const [nuiLocale, setNuiLocale] = useState<string>('pt-BR');
-  const [localeData, setLocaleData] = useState<any>(null);
+  const [currencyCode, setCurrencyCode] = useState<string>('BRL');
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const data = event.data;
 
       if (data.currencySymbol) setCurrencySymbol(data.currencySymbol);
-      if (data.nuiLocale) setNuiLocale(data.nuiLocale);
-      if (data.nuiLocaleData) setLocaleData(data.nuiLocaleData);
+      if (data.currencyCode) setCurrencyCode(data.currencyCode);
 
       if (data.action === "buyVehicle") {
         const formattedData: ContractData = {
@@ -59,7 +56,7 @@ const App: React.FC = () => {
             firstname: data.buyerData.firstname,
             lastname: data.buyerData.lastname,
           } : undefined,
-          date: new Date().toLocaleString(data.nuiLocale || 'pt-BR')
+          date: new Date().toLocaleString('pt-BR')
         };
         
         setMode('buy');
@@ -254,7 +251,7 @@ const App: React.FC = () => {
         firstname: sold.buyerName.split(' ')[0] || "Comprador",
         lastname: sold.buyerName.split(' ').slice(1).join(' ') || "Autorizado"
       },
-      date: new Date(sold.date).toLocaleString(nuiLocale)
+      date: new Date(sold.date).toLocaleString('pt-BR')
     };
 
     setContractData(formattedData);
@@ -280,8 +277,7 @@ const App: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <LocaleProvider locale={nuiLocale} localeData={localeData}>
-      <CurrencyProvider symbol={currencySymbol} locale={nuiLocale}>
+    <CurrencyProvider symbol={currencySymbol} code={currencyCode}>
       <div 
         className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
         style={{ backgroundColor: 'transparent', background: 'transparent' }}
@@ -342,7 +338,6 @@ const App: React.FC = () => {
         </main>
       </div>
     </CurrencyProvider>
-    </LocaleProvider>
   );
 };
 

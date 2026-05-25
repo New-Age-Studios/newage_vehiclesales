@@ -1,16 +1,18 @@
 import React, { createContext, useContext } from 'react';
 
+const CURRENCY_LOCALE = 'pt-BR'; // Locale fixo: ponto como separador de milhar
+
 interface CurrencyContextType {
   currencySymbol: string;
-  currencyLocale: string;
+  currencyCode: string;
   formatPrice: (value: number) => string;
 }
 
 const CurrencyContext = createContext<CurrencyContextType>({
   currencySymbol: 'R$',
-  currencyLocale: 'pt-BR',
+  currencyCode: 'BRL',
   formatPrice: (value: number) => {
-    const formattedNumber = new Intl.NumberFormat('pt-BR', {
+    const formattedNumber = new Intl.NumberFormat(CURRENCY_LOCALE, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -20,13 +22,13 @@ const CurrencyContext = createContext<CurrencyContextType>({
 
 interface CurrencyProviderProps {
   symbol: string;
-  locale: string;
+  code: string;
   children: React.ReactNode;
 }
 
-export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ symbol, locale, children }) => {
+export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ symbol, code, children }) => {
   const formatPrice = (value: number) => {
-    const formattedNumber = new Intl.NumberFormat(locale || 'pt-BR', {
+    const formattedNumber = new Intl.NumberFormat(CURRENCY_LOCALE, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -34,7 +36,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ symbol, loca
   };
 
   return (
-    <CurrencyContext.Provider value={{ currencySymbol: symbol, currencyLocale: locale, formatPrice }}>
+    <CurrencyContext.Provider value={{ currencySymbol: symbol, currencyCode: code, formatPrice }}>
       {children}
     </CurrencyContext.Provider>
   );

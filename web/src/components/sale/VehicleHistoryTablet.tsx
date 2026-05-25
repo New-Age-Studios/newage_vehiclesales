@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ActiveListing, SoldVehicle } from '../../types/history';
 import { X, Calendar, User, FileText, ArrowLeft, RefreshCw, Car, Coins, Tag, Receipt, Trash2 } from 'lucide-react';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useLocale } from '../../context/LocaleContext';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 
@@ -38,8 +37,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
   const [selectedSold, setSelectedSold] = useState<SoldVehicle | null>(data.sold?.[0] || null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { formatPrice, currencyLocale } = useCurrency();
-  const t = useLocale();
+  const { formatPrice } = useCurrency();
 
   const getPhotoUrl = (model: string) =>
     `https://raw.githubusercontent.com/mriqbox/ui-kit/main/assets/vehicles/${model.toLowerCase()}.jpg`;
@@ -69,7 +67,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
             <RefreshCw size={24} className="text-concessionaire" /> {data.bizName}
           </h1>
           <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">
-            {t.historyTablet.mySalesAndHistory} • {data.sellerData.firstname} {data.sellerData.lastname}
+            Minhas Vendas e Histórico • {data.sellerData.firstname} {data.sellerData.lastname}
           </p>
         </div>
         <button 
@@ -96,7 +94,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
               )}
             >
-              <Tag size={14} /> {t.historyTablet.activeListings} ({data.active?.length || 0})
+              <Tag size={14} /> Anúncios Ativos ({data.active?.length || 0})
             </button>
             <button
               onClick={() => handleTabChange('sold')}
@@ -107,7 +105,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
               )}
             >
-              <Receipt size={14} /> {t.historyTablet.soldVehicles} ({data.sold?.length || 0})
+              <Receipt size={14} /> Veículos Vendidos ({data.sold?.length || 0})
             </button>
           </div>
 
@@ -139,7 +137,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                         {listing.model.toUpperCase()}
                       </h4>
                       <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">
-                        {t.historyTablet.plate}: {listing.plate}
+                        Placa: {listing.plate}
                       </p>
                     </div>
                     <div className="text-right">
@@ -147,7 +145,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                         {formatPrice(listing.price)}
                       </span>
                       <p className="text-zinc-500 text-[9px] font-medium uppercase mt-0.5">
-                        {t.historyTablet.id}: {listing.oid}
+                        ID: {listing.oid}
                       </p>
                     </div>
                   </button>
@@ -155,7 +153,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-500 py-16">
                   <Car size={32} className="opacity-30 mb-2" />
-                  <p className="text-xs font-semibold uppercase tracking-wider">{t.historyTablet.noActiveListings}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider">Nenhum anúncio ativo</p>
                 </div>
               )
             ) : (
@@ -184,7 +182,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                         {soldVeh.model.toUpperCase()}
                       </h4>
                       <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">
-                        {t.historyTablet.plate}: {soldVeh.plate}
+                        Placa: {soldVeh.plate}
                       </p>
                     </div>
                     <div className="text-right">
@@ -192,7 +190,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                         {formatPrice(soldVeh.price)}
                       </span>
                       <p className="text-zinc-500 text-[9px] font-medium uppercase mt-0.5">
-                        {new Date(soldVeh.date).toLocaleDateString(currencyLocale)}
+                        {new Date(soldVeh.date).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </button>
@@ -200,7 +198,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-500 py-16">
                   <Coins size={32} className="opacity-30 mb-2" />
-                  <p className="text-xs font-semibold uppercase tracking-wider">{t.historyTablet.noSoldVehicles}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider">Nenhum veículo vendido</p>
                 </div>
               )
             )}
@@ -212,7 +210,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
           {activeTab === 'active' && selectedActive ? (
             <div className="flex flex-col h-full">
               <h3 className="text-lg font-black uppercase text-white tracking-tight border-b border-zinc-800 pb-3 mb-4">
-                {t.historyTablet.listingDetails}
+                Detalhes do Anúncio
               </h3>
 
               <div className="flex-1 space-y-5 overflow-y-auto pr-1 custom-scrollbar">
@@ -227,22 +225,22 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
 
                 <div className="space-y-3">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">{t.historyTablet.vehicle}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">Veículo</span>
                     <span className="text-white font-black text-base uppercase leading-none">{selectedActive.model}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">{t.historyTablet.plate}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">Placa</span>
                       <span className="text-zinc-300 font-bold uppercase text-xs">{selectedActive.plate}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">{t.historyTablet.chargedPrice}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">Preço Cobrado</span>
                       <span className="text-concessionaire font-black text-sm">{formatPrice(selectedActive.price)}</span>
                     </div>
                   </div>
                   {selectedActive.description && (
                     <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">{t.historyTablet.sellerDescription}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">Descrição do Vendedor</span>
                       <p className="text-zinc-400 text-xs italic bg-zinc-950/40 border border-zinc-800/60 p-3 rounded-xl mt-1 leading-relaxed">
                         "{selectedActive.description}"
                       </p>
@@ -256,17 +254,17 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   onClick={() => onCancelSale(selectedActive)}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none"
                 >
-                  {t.historyTablet.cancelListing}
+                  Cancelar Anúncio
                 </Button>
                 <p className="text-[9px] text-zinc-500 text-center uppercase font-bold tracking-wider mt-2">
-                  {t.historyTablet.vehicleReturnedToGarage}
+                  O veículo será devolvido à sua garagem.
                 </p>
               </div>
             </div>
           ) : activeTab === 'sold' && selectedSold ? (
             <div className="flex flex-col h-full">
               <h3 className="text-lg font-black uppercase text-white tracking-tight border-b border-zinc-800 pb-3 mb-4">
-                {t.historyTablet.saleDetails}
+                Detalhes da Venda
               </h3>
 
               <div className="flex-1 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
@@ -283,7 +281,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-2">
                     <User size={16} className="text-concessionaire" />
                     <div className="flex-1 min-w-0">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">{t.historyTablet.buyer}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">Comprador</span>
                       <span className="text-white font-black text-xs truncate block">{selectedSold.buyerName}</span>
                     </div>
                   </div>
@@ -291,9 +289,9 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-2">
                     <Calendar size={16} className="text-concessionaire" />
                     <div>
-                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">{t.historyTablet.transactionDate}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">Data da Transação</span>
                       <span className="text-white font-bold text-xs">
-                        {new Date(selectedSold.date).toLocaleString(currencyLocale)}
+                        {new Date(selectedSold.date).toLocaleString('pt-BR')}
                       </span>
                     </div>
                   </div>
@@ -301,7 +299,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   <div className="flex items-center gap-2 pb-1">
                     <Coins size={16} className="text-concessionaire" />
                     <div>
-                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">{t.historyTablet.creditReceived}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-zinc-500 block">Crédito Recebido</span>
                       <span className="text-green-400 font-black text-sm">{formatPrice(selectedSold.price)}</span>
                     </div>
                   </div>
@@ -313,13 +311,13 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   onClick={() => onOpenContract(selectedSold)}
                   className="w-full bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none flex items-center justify-center gap-2"
                 >
-                  <FileText size={16} /> {t.historyTablet.viewContract}
+                  <FileText size={16} /> Visualizar Contrato
                 </Button>
                 <Button 
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-600/30 font-black uppercase text-[10px] tracking-widest h-11 rounded-xl focus:outline-none flex items-center justify-center gap-2 transition-all"
                 >
-                  <Trash2 size={14} /> {t.historyTablet.deleteFromHistory}
+                  <Trash2 size={14} /> Excluir do Histórico
                 </Button>
               </div>
             </div>
@@ -327,7 +325,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
             <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-center py-16">
               <Car size={40} className="opacity-30 mb-3" />
               <p className="text-xs font-semibold uppercase tracking-wider max-w-[180px]">
-                {t.historyTablet.selectVehicleToView}
+                Selecione um veículo da lista para visualizar os detalhes
               </p>
             </div>
           )}
@@ -341,14 +339,14 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-[28px]" onClick={() => setShowDeleteConfirm(false)} />
           <div className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-300">
              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{t.historyTablet.deleteConfirmTitle}</h3>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Excluir do Histórico</h3>
                 <button onClick={() => setShowDeleteConfirm(false)} className="text-zinc-600 hover:text-white transition-colors focus:outline-none">
                    <X size={20} />
                 </button>
              </div>
              
              <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
-                {t.historyTablet.deleteConfirmText} <span className="text-white font-bold">{selectedSold.model.toUpperCase()}</span> ({selectedSold.plate}) {t.historyTablet.deleteConfirmFrom}
+                Você tem certeza que deseja excluir o veículo <span className="text-white font-bold">{selectedSold.model.toUpperCase()}</span> ({selectedSold.plate}) do seu histórico de vendas? Esta ação não pode ser desfeita.
              </p>
 
              <div className="mt-8 flex space-x-3">
@@ -357,7 +355,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   onClick={() => setShowDeleteConfirm(false)}
                   className="flex-1 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none"
                 >
-                  {t.historyTablet.cancel}
+                  Cancelar
                 </Button>
                 <Button 
                   onClick={() => {
@@ -367,7 +365,7 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                   }}
                   className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none"
                 >
-                  {t.historyTablet.confirmDelete}
+                  Confirmar Exclusão
                 </Button>
              </div>
           </div>

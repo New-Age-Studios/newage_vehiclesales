@@ -76,21 +76,6 @@ local function despawnOccasionsVehicles()
     table.wipe(entityZones)
 end
 
-local function getNuiLocaleData()
-    local localeName = config.nuiLocale or "pt-br"
-    local fileContent = LoadResourceFile(GetCurrentResourceName(), ("locales/%s.json"):format(localeName:lower()))
-    if not fileContent then
-        fileContent = LoadResourceFile(GetCurrentResourceName(), "locales/pt-br.json")
-    end
-    if fileContent then
-        local data = json.decode(fileContent)
-        if data and data.nui then
-            return data.nui
-        end
-    end
-    return nil
-end
-
 local function openMainMenu(bool)
     if not bool then
         SetNuiFocus(false, false)
@@ -126,8 +111,7 @@ local function openMainMenu(bool)
     SendNUIMessage({
         action = 'mainMenu',
         currencySymbol = config.currencySymbol or "R$",
-        nuiLocale = config.nuiLocale or "pt-BR",
-        nuiLocaleData = getNuiLocaleData(),
+        currencyCode = config.currencyCode or "BRL",
         bizName = config.zones[zone].businessName,
         enableSellBack = config.enableSellBack ~= false,
         options = {
@@ -200,8 +184,7 @@ local function openHistoryTablet(bool)
     SendNUIMessage({
         action = 'openHistoryTablet',
         currencySymbol = config.currencySymbol or "R$",
-        nuiLocale = config.nuiLocale or "pt-BR",
-        nuiLocaleData = getNuiLocaleData(),
+        currencyCode = config.currencyCode or "BRL",
         bizName = zone and config.zones[zone].businessName or "Concessionária de Usados",
         active = formattedActive,
         sold = formattedSold,
@@ -229,8 +212,7 @@ local function openSellContract(bool)
     SendNUIMessage({
         action = 'sellVehicle',
         currencySymbol = config.currencySymbol or "R$",
-        nuiLocale = config.nuiLocale or "pt-BR",
-        nuiLocaleData = getNuiLocaleData(),
+        currencyCode = config.currencyCode or "BRL",
         bizName = config.zones[zone].businessName,
         dealerFee = config.dealerFee or 0,
         sellerData = {
@@ -255,8 +237,7 @@ local function openBuyContract(sellerData, vehicleData)
     SendNUIMessage({
         action = 'buyVehicle',
         currencySymbol = config.currencySymbol or "R$",
-        nuiLocale = config.nuiLocale or "pt-BR",
-        nuiLocaleData = getNuiLocaleData(),
+        currencyCode = config.currencyCode or "BRL",
         showTakeBackOption = sellerData.charinfo.firstname == QBX.PlayerData.charinfo.firstname and sellerData.charinfo.lastname == QBX.PlayerData.charinfo.lastname,
         bizName = config.zones[zone].businessName,
         sellerData = {

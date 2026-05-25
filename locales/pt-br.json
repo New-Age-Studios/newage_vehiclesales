@@ -13,8 +13,11 @@
         "view_contract_int": "[E] Ver Contrato",
         "sell_vehicle": "Vender Veículo",
         "sell_vehicle_help": "Venda seu veículo para outros cidadãos!",
+        "my_sales": "Anúncios e Histórico",
+        "my_sales_help": "Gerencie seus anúncios ativos e veja seu histórico de vendas!",
         "sell_back": "Vender de volta!",
-        "sell_back_help": "Venda seu carro de volta por um preço reduzido!"
+        "sell_back_help": "Venda seu carro de volta por um preço reduzido!",
+        "interaction": "[E] Vender Veículo"
     },
     "success": {
         "sold_car_for_price": "Você vendeu seu carro por %s%s",
@@ -22,7 +25,16 @@
         "vehicle_bought": "Veículo Comprado"
     },
     "info": {
-        "used_vehicle_lot": "Lote de Carros Usados"
+        "confirm_cancel": "~g~Y~w~ - Confirmar / ~r~N~w~ - Cancelar ~g~",
+        "vehicle_returned": "Seu veículo foi devolvido",
+        "used_vehicle_lot": "Lote de Carros Usados",
+        "sell_vehicle_to_dealer": "[~g~E~w~] - Vender Veículo Para Revendedor Por ~g~$%s",
+        "view_contract": "[~g~E~w~] - Ver Contrato do Veículo",
+        "cancel_sale": "[~r~G~w~] - Cancelar Venda do Veículo",
+        "model_price": "%s, Preço: ~g~$%s",
+        "are_you_sure": "Você tem certeza de que não quer mais vender seu veículo?",
+        "yes_no": "[~g~7~w~] - Sim | [~r~8~w~] - Não",
+        "place_vehicle_for_sale": "[~g~E~w~] - Colocar Veículo À Venda Por Proprietário"
     },
     "charinfo": {
         "firstname": "não",
@@ -34,166 +46,5 @@
         "sender": "Vendas de RV de Larry",
         "subject": "Você vendeu um veículo!",
         "message": "Você fez %s%s com a venda do seu %s."
-    },
-    "nui": {
-        "pressEscToCancel": "Pressione ESC para cancelar e sair",
-        "pressEscToGoBack": "Pressione ESC para voltar",
-        "unknownVehicle": "Veículo Desconhecido",
-        "noDescription": "O vendedor não preencheu nenhuma descrição.",
-        "mainMenu": {
-            "ownerOptions": "Opções do Proprietário",
-            "confirmSale": "Confirmar Venda",
-            "sellingVehicle": "Você está prestes a vender o veículo",
-            "backTo": "de volta para a concessionária.",
-            "warningNotOwner": "Atenção: Você não é o proprietário deste veículo e não pode vendê-lo.",
-            "warningHasFinancing": "Atenção: Você deve quitar o financiamento deste veículo antes de vendê-lo.",
-            "tableValue": "Valor de Tabela",
-            "returnDiscount": "Desconto de Devolução",
-            "amountToReceive": "Valor a Receber",
-            "review": "Revisar",
-            "sellNow": "Vender Agora"
-        },
-        "saleHeader": {
-            "portalVersion": "Portal de Vendas v2.0",
-            "newVehicleListing": "Cadastro de Novo Veículo para Vitrine"
-        },
-        "salePriceForm": {
-            "label": "Valor de Venda Pretendido",
-            "localCurrency": "/ Moeda Local"
-        },
-        "sellerObservationBox": {
-            "label": "Observações Adicionais",
-            "placeholder": "Descreva detalhes importantes..."
-        },
-        "vehicleSpecsGrid": {
-            "model": "Modelo",
-            "plate": "Placa",
-            "mileage": "Quilometragem",
-            "fuel": "Combustível",
-            "transmission": "Câmbio do Veículo",
-            "paintCustomization": "Personalização de Pintura",
-            "exoticPaint": "Pintura Exótica?",
-            "rgbDetected": "RGB Detectado",
-            "changePaint": "Alterar Cor",
-            "fuelOptions": [
-                "Gasolina",
-                "Diesel",
-                "Etanol"
-            ],
-            "transmissionOptions": [
-                "Manual",
-                "Automático"
-            ]
-        },
-        "vehiclePreview": {
-            "takePhoto": "Tirar Foto do Veículo",
-            "mandatory": "(Obrigatório)",
-            "photoCaptured": "Foto Capturada (Clique para refazer)",
-            "vehiclePhoto": "Foto do Veículo"
-        },
-        "saleActions": {
-            "listVehicle": "Anunciar Veículo para Venda"
-        },
-        "dealerFeeSummary": {
-            "financialSummary": "Resumo Financeiro",
-            "adminFee": "Taxa Administrativa",
-            "netAmount": "Valor Líquido a Receber",
-            "disclaimer": "* O valor líquido será depositado em sua conta bancária assim que o veículo for vendido."
-        },
-        "priceBox": {
-            "totalValue": "Valor Total da Transação",
-            "status": "Status",
-            "pending": "Pendente"
-        },
-        "historyTablet": {
-            "mySalesAndHistory": "Minhas Vendas e Histórico",
-            "activeListings": "Anúncios Ativos",
-            "soldVehicles": "Veículos Vendidos",
-            "noActiveListings": "Nenhum anúncio ativo",
-            "noSoldVehicles": "Nenhum veículo vendido",
-            "plate": "Placa",
-            "id": "ID",
-            "listingDetails": "Detalhes do Anúncio",
-            "saleDetails": "Detalhes da Venda",
-            "vehicle": "Veículo",
-            "chargedPrice": "Preço Cobrado",
-            "sellerDescription": "Descrição do Vendedor",
-            "cancelListing": "Cancelar Anúncio",
-            "vehicleReturnedToGarage": "O veículo será devolvido à sua garagem.",
-            "buyer": "Comprador",
-            "transactionDate": "Data da Transação",
-            "creditReceived": "Crédito Recebido",
-            "viewContract": "Visualizar Contrato",
-            "deleteFromHistory": "Excluir do Histórico",
-            "selectVehicleToView": "Selecione um veículo da lista para visualizar os detalhes",
-            "deleteConfirmTitle": "Excluir do Histórico",
-            "deleteConfirmText": "Você tem certeza que deseja excluir o veículo",
-            "deleteConfirmFrom": "do seu histórico de vendas? Esta ação não pode ser desfeita.",
-            "cancel": "Cancelar",
-            "confirmDelete": "Confirmar Exclusão"
-        },
-        "cameraOverlay": {
-            "captureMode": "MODO CAPTURA",
-            "battery": "BATERIA",
-            "photographVehicle": "Fotografar Veículo",
-            "positionBestAngle": "Posicione o melhor ângulo antes de publicar",
-            "orbit": "Orbitar",
-            "zoom": "Zoom",
-            "capture": "Capturar",
-            "cancel": "Cancelar"
-        },
-        "contract": {
-            "title": "CONTRATO DE COMPRA E VENDA DE VEÍCULO",
-            "number": "Nº",
-            "techSpecs": "Especificações Técnicas",
-            "ownerInfo": "Informações do Proprietário",
-            "fullName": "Nome Completo",
-            "contact": "Contato",
-            "bankAccount": "Conta Bancária",
-            "sellerSignature": "VENDEDOR",
-            "buyerSignature": "COMPRADOR",
-            "clickToSign": "[ Clique para Assinar ]",
-            "signed": "Assinado",
-            "waitingSignature": "Aguardando...",
-            "doc": "Doc:",
-            "vehicleColor": "Cor / Pintura",
-            "exotic": "EXÓTICA",
-            "mileage": "Quilometragem",
-            "fuel": "Combustível",
-            "transmission": "Câmbio",
-            "sellerNotes": "Observações do Vendedor",
-            "termsTitle": "Termo de Responsabilidade",
-            "terms1": "1. O COMPRADOR declara ter vistoriado o veículo e aceitá-lo no estado em que se encontra.",
-            "terms2": "2. A transferência de propriedade é imediata após a confirmação do pagamento.",
-            "imageUnavailable": "Imagem Indisponível",
-            "figureCaption": "Fig. I - Registro do Veículo",
-            "authenticityTitle": "Autenticidade Garantida",
-            "authenticityText": "Este documento possui validade jurídica interna. A falsificação de assinatura ou dados é crime previsto no código penal."
-        },
-        "contractActions": {
-            "exitCancel": "Sair / Cancelar",
-            "signDigitally": "Assinar Digitalmente",
-            "confirmPurchase": "Confirmar Compra"
-        },
-        "vehicleReadOnly": {
-            "model": "Modelo",
-            "plate": "Placa",
-            "fuel": "Combustível",
-            "engine": "Motor",
-            "body": "Lataria",
-            "color": "Cor"
-        },
-        "colorPicker": {
-            "title": "Configuração de Pintura",
-            "apply": "Aplicar Pintura"
-        },
-        "defaults": {
-            "mileage": "12.300 KM",
-            "fuel": "Gasolina",
-            "transmission": "Automático",
-            "sellerAnonymous": "Anônimo",
-            "sellerLabel": "Vendedor",
-            "buyerLabel": "Comprador Autorizado"
-        }
     }
 }

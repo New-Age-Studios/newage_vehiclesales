@@ -1,21 +1,19 @@
 import React from 'react';
 import { SaleVehicleData } from '../../types/sale';
 import { Hash, Palette, Fuel, Gauge, Activity, Settings2 } from 'lucide-react';
-import { useLocale } from '../../context/LocaleContext';
 
 interface VehicleReadOnlyInfoProps {
   vehicle: SaleVehicleData;
 }
 
 export const VehicleReadOnlyInfo: React.FC<VehicleReadOnlyInfoProps> = ({ vehicle }) => {
-  const t = useLocale();
   const items = [
-    { label: t.vehicleReadOnly.model, value: vehicle.model, icon: Settings2 },
-    { label: t.vehicleReadOnly.plate, value: vehicle.plate, icon: Hash },
-    { label: t.vehicleReadOnly.fuel, value: `${vehicle.fuel}%`, icon: Fuel },
-    { label: t.vehicleReadOnly.engine, value: `${vehicle.engine}%`, icon: Activity },
-    { label: t.vehicleReadOnly.body, value: `${vehicle.body}%`, icon: Gauge },
-    { label: t.vehicleReadOnly.color, value: vehicle.color, icon: Palette },
+    { label: "Modelo", value: vehicle.model, icon: Settings2 },
+    { label: "Placa", value: vehicle.plate, icon: Hash },
+    { label: "Combustível", value: `${vehicle.fuel}%`, icon: Fuel },
+    { label: "Motor", value: `${vehicle.engine}%`, icon: Activity },
+    { label: "Lataria", value: `${vehicle.body}%`, icon: Gauge },
+    { label: "Cor", value: vehicle.color, icon: Palette },
   ];
 
   return (
