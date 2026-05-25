@@ -1,5 +1,6 @@
 import React from 'react';
 import { Camera } from 'lucide-react';
+import { useLocale } from '../../context/LocaleContext';
 
 interface VehiclePreviewProps {
   model: string;
@@ -8,6 +9,7 @@ interface VehiclePreviewProps {
 }
 
 export const VehiclePreview: React.FC<VehiclePreviewProps> = ({ model, photoUrl, onTakePhoto }) => {
+  const t = useLocale();
   const defaultPhoto = `https://raw.githubusercontent.com/mriqbox/ui-kit/main/assets/vehicles/${model.toLowerCase()}.jpg`;
   const displayPhoto = photoUrl || defaultPhoto;
   const hasCustomPhoto = !!photoUrl;
@@ -33,8 +35,8 @@ export const VehiclePreview: React.FC<VehiclePreviewProps> = ({ model, photoUrl,
           <div className="bg-red-500 p-2.5 rounded-full text-white mb-2 animate-bounce">
             <Camera size={20} />
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">Tirar Foto do Veículo</span>
-          <span className="text-[8px] font-bold text-red-400 uppercase mt-0.5 tracking-wider">(Obrigatório)</span>
+          <span className="text-[10px] font-black text-white uppercase tracking-widest">{t.vehiclePreview.takePhoto}</span>
+          <span className="text-[8px] font-bold text-red-400 uppercase mt-0.5 tracking-wider">{t.vehiclePreview.mandatory}</span>
         </div>
       )}
 
@@ -44,7 +46,7 @@ export const VehiclePreview: React.FC<VehiclePreviewProps> = ({ model, photoUrl,
             <Camera size={14} className="text-black" />
           </div>
           <span className="text-[10px] font-black text-white uppercase tracking-widest">
-            {onTakePhoto ? "Foto Capturada (Clique para refazer)" : "Foto do Veículo"}
+            {onTakePhoto ? t.vehiclePreview.photoCaptured : t.vehiclePreview.vehiclePhoto}
           </span>
         </div>
       )}

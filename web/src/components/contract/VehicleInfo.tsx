@@ -1,17 +1,19 @@
 import React from 'react';
 import { VehicleData } from '../../types/contract';
 import { Separator } from '../ui/separator';
+import { useLocale } from '../../context/LocaleContext';
 
 interface VehicleInfoProps {
   vehicle: VehicleData;
 }
 
 export const VehicleInfo: React.FC<VehicleInfoProps> = ({ vehicle }) => {
+  const t = useLocale();
   const infoItems = [
-    { label: 'Modelo', value: vehicle.model },
-    { label: 'Placa', value: vehicle.plate },
+    { label: t.vehicleSpecsGrid.model, value: vehicle.model },
+    { label: t.vehicleSpecsGrid.plate, value: vehicle.plate },
     { 
-      label: 'Cor / Pintura', 
+      label: t.contract.vehicleColor, 
       value: (
         <div className="flex items-center space-x-2">
           {vehicle.color && vehicle.color !== 'Personalizada' && (
@@ -28,21 +30,21 @@ export const VehicleInfo: React.FC<VehicleInfoProps> = ({ vehicle }) => {
           )}
           {vehicle.isExotic && (
             <span className="text-[7px] font-black bg-zinc-900 text-white px-1.5 py-0.5 rounded-sm tracking-tighter ml-1">
-              EXÓTICA
+              {t.contract.exotic}
             </span>
           )}
         </div>
       )
     },
-    { label: 'Quilometragem', value: vehicle.mileage || '12.300 KM' },
-    { label: 'Combustível', value: vehicle.fuelType || vehicle.fuel || 'Gasolina' },
-    { label: 'Câmbio', value: vehicle.transmission || 'Automático' },
+    { label: t.contract.mileage, value: vehicle.mileage || t.defaults.mileage },
+    { label: t.contract.fuel, value: vehicle.fuelType || vehicle.fuel || t.defaults.fuel },
+    { label: t.contract.transmission, value: vehicle.transmission || t.defaults.transmission },
   ];
 
   return (
     <div className="space-y-3">
       <div className="flex items-center space-x-2">
-        <h2 className="text-[9px] font-black text-zinc-800 uppercase tracking-widest whitespace-nowrap">Especificações Técnicas</h2>
+        <h2 className="text-[9px] font-black text-zinc-800 uppercase tracking-widest whitespace-nowrap">{t.contract.techSpecs}</h2>
         <Separator className="bg-zinc-200" />
       </div>
       
@@ -56,7 +58,7 @@ export const VehicleInfo: React.FC<VehicleInfoProps> = ({ vehicle }) => {
       </div>
 
       <div className="mt-2">
-        <span className="text-[8px] font-bold text-zinc-400 uppercase block">Observações do Vendedor</span>
+        <span className="text-[8px] font-bold text-zinc-400 uppercase block">{t.contract.sellerNotes}</span>
         <p className="text-[10px] text-zinc-800 font-medium italic leading-[1.3] mt-0.5 break-words line-clamp-3">
           "{vehicle.description}"
         </p>

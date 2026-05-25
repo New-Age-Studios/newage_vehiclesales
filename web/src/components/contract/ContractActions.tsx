@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import { X, Check, PenLine } from 'lucide-react';
+import { useLocale } from '../../context/LocaleContext';
 
 interface ContractActionsProps {
   onCancel: () => void;
@@ -9,6 +10,7 @@ interface ContractActionsProps {
 }
 
 export const ContractActions: React.FC<ContractActionsProps> = ({ onCancel, onConfirm, onSign }) => {
+  const t = useLocale();
   return (
     <div className="fixed bottom-10 left-0 right-0 flex justify-center items-center space-x-6 z-50">
       <Button 
@@ -17,7 +19,7 @@ export const ContractActions: React.FC<ContractActionsProps> = ({ onCancel, onCo
         className="group"
       >
         <X className="w-4 h-4 mr-2 group-hover:text-red-500 transition-colors" />
-        Sair / Cancelar
+        {t.contractActions.exitCancel}
       </Button>
       
       <div className="flex items-center space-x-4 bg-zinc-900/50 backdrop-blur-md p-2 rounded-lg border border-white/10 shadow-2xl">
@@ -28,7 +30,7 @@ export const ContractActions: React.FC<ContractActionsProps> = ({ onCancel, onCo
             className="border-white/20 text-white hover:bg-white/10"
           >
             <PenLine className="w-4 h-4 mr-2" />
-            Assinar Digitalmente
+            {t.contractActions.signDigitally}
           </Button>
         )}
         
@@ -38,7 +40,7 @@ export const ContractActions: React.FC<ContractActionsProps> = ({ onCancel, onCo
           className="bg-concessionaire hover:bg-concessionaire-dark text-white px-10"
         >
           <Check className="w-4 h-4 mr-2" />
-          Confirmar Compra
+          {t.contractActions.confirmPurchase}
         </Button>
       </div>
     </div>

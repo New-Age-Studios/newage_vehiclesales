@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SaleData, SaleVehicleData } from '../../types/sale';
+import { useCurrency } from '../../context/CurrencyContext';
 import { SaleHeader } from './SaleHeader';
 import { VehiclePreview } from './VehiclePreview';
 import { VehicleSpecsGrid } from './VehicleSpecsGrid';
@@ -61,8 +62,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
     onConfirm(numericPrice, description, vehicleState);
   };
 
-  const format = (val: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  const { formatPrice: format } = useCurrency();
 
   return (
     <div 

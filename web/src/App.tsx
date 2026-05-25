@@ -8,6 +8,8 @@ import { ActiveListing, SoldVehicle } from './types/history';
 import { ContractData } from './types/contract';
 import { SaleData, SaleVehicleData } from './types/sale';
 import { mockContract } from './data/mockContract';
+import { CurrencyProvider } from './context/CurrencyContext';
+import { LocaleProvider } from './context/LocaleContext';
 
 const App: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -20,9 +22,17 @@ const App: React.FC = () => {
   const [menuData, setMenuData] = useState<any | null>(null);
   const [historyData, setHistoryData] = useState<HistoryTabletData | null>(null);
 
+  const [currencySymbol, setCurrencySymbol] = useState<string>('R$');
+  const [nuiLocale, setNuiLocale] = useState<string>('pt-BR');
+  const [localeData, setLocaleData] = useState<any>(null);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const data = event.data;
+
+      if (data.currencySymbol) setCurrencySymbol(data.currencySymbol);
+      if (data.nuiLocale) setNuiLocale(data.nuiLocale);
+      if (data.nuiLocaleData) setLocaleData(data.nuiLocaleData);
 
       if (data.action === "buyVehicle") {
         const formattedData: ContractData = {
@@ -49,7 +59,7 @@ const App: React.FC = () => {
             firstname: data.buyerData.firstname,
             lastname: data.buyerData.lastname,
           } : undefined,
-          date: new Date().toLocaleString('pt-BR')
+          date: new Date().toLocaleString(data.nuiLocale || 'pt-BR')
         };
         
         setMode('buy');
@@ -244,7 +254,7 @@ const App: React.FC = () => {
         firstname: sold.buyerName.split(' ')[0] || "Comprador",
         lastname: sold.buyerName.split(' ').slice(1).join(' ') || "Autorizado"
       },
-      date: new Date(sold.date).toLocaleString('pt-BR')
+      date: new Date(sold.date).toLocaleString(nuiLocale)
     };
 
     setContractData(formattedData);
@@ -270,65 +280,69 @@ const App: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <div 
-      className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
-      style={{ backgroundColor: 'transparent', background: 'transparent' }}
-    >
-      <main 
-        className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in duration-500 py-8"
+    <LocaleProvider locale={nuiLocale} localeData={localeData}>
+      <CurrencyProvider symbol={currencySymbol} locale={nuiLocale}>
+      <div 
+        className="w-screen h-screen flex items-center justify-center overflow-hidden bg-transparent"
         style={{ backgroundColor: 'transparent', background: 'transparent' }}
       >
-        {mode === 'buy' && contractData && (
-          <VehicleContract 
-            data={contractData} 
-            onConfirm={handleConfirmPurchase}
-            onCancel={handleClose}
-            readOnly={contractData.id.startsWith('HIST-')}
-          />
-        )}
-        {mode === 'sell' && saleData && saleVehicleState && (
-          <VehicleSaleTablet 
-            data={saleData}
-            price={salePrice}
-            setPrice={setSalePrice}
-            description={saleDescription}
-            setDescription={setSaleDescription}
-            vehicleState={saleVehicleState}
-            setVehicleState={setSaleVehicleState}
-            onConfirm={handleConfirmSale}
-            onCancel={handleClose}
-          />
-        )}
-        {mode === 'menu' && menuData && (
-          <MainMenu 
-            data={menuData}
-            onSelectSell={handleSelectSell}
-            onSelectSellBack={handleSelectSellBack}
-            onSelectHistory={() => {
-              fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/selectHistory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-              });
-              setVisible(false);
-            }}
-            onCancel={handleClose}
-          />
-        )}
-        {mode === 'history' && historyData && (
-          <VehicleHistoryTablet 
-            data={historyData}
-            onCancelSale={handleCancelSale}
-            onCancel={handleClose}
-            onOpenContract={handleOpenContract}
-            onDeleteHistoryRecord={handleDeleteHistoryRecord}
-          />
-        )}
-        {mode === 'camera' && (
-          <CameraOverlay />
-        )}
-      </main>
-    </div>
+        <main 
+          className="relative w-full h-full flex items-center justify-center animate-in fade-in zoom-in duration-500 py-8"
+          style={{ backgroundColor: 'transparent', background: 'transparent' }}
+        >
+          {mode === 'buy' && contractData && (
+            <VehicleContract 
+              data={contractData} 
+              onConfirm={handleConfirmPurchase}
+              onCancel={handleClose}
+              readOnly={contractData.id.startsWith('HIST-')}
+            />
+          )}
+          {mode === 'sell' && saleData && saleVehicleState && (
+            <VehicleSaleTablet 
+              data={saleData}
+              price={salePrice}
+              setPrice={setSalePrice}
+              description={saleDescription}
+              setDescription={setSaleDescription}
+              vehicleState={saleVehicleState}
+              setVehicleState={setSaleVehicleState}
+              onConfirm={handleConfirmSale}
+              onCancel={handleClose}
+            />
+          )}
+          {mode === 'menu' && menuData && (
+            <MainMenu 
+              data={menuData}
+              onSelectSell={handleSelectSell}
+              onSelectSellBack={handleSelectSellBack}
+              onSelectHistory={() => {
+                fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/selectHistory`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({})
+                });
+                setVisible(false);
+              }}
+              onCancel={handleClose}
+            />
+          )}
+          {mode === 'history' && historyData && (
+            <VehicleHistoryTablet 
+              data={historyData}
+              onCancelSale={handleCancelSale}
+              onCancel={handleClose}
+              onOpenContract={handleOpenContract}
+              onDeleteHistoryRecord={handleDeleteHistoryRecord}
+            />
+          )}
+          {mode === 'camera' && (
+            <CameraOverlay />
+          )}
+        </main>
+      </div>
+    </CurrencyProvider>
+    </LocaleProvider>
   );
 };
 

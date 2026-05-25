@@ -185,12 +185,13 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
 
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
     sendWebhook("cancel", "❌ Anúncio Cancelado", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Anúncio original de:** R$ %s"):format(
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Anúncio original de:** %s %s"):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
             vehicleName, 
             result[1].plate, 
+            (config.currencySymbol or "R$"),
             result[1].price
         ), 
         16347926, -- Orange (#f97316)
@@ -222,12 +223,13 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
 
     local vehicleName = VEHICLES[vehicleData.model] and VEHICLES[vehicleData.model].name or vehicleData.model
     sendWebhook("sell", "🚗 Veículo Anunciado", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Valor:** R$ %s\n**Descrição:** %s"):format(
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Valor:** %s %s\n**Descrição:** %s"):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
             vehicleName, 
             vehicleData.plate, 
+            (config.currencySymbol or "R$"),
             vehiclePrice, 
             vehicleData.desc or "Nenhuma"
         ), 
@@ -245,19 +247,21 @@ RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
     local percentage = config.sellBackPercentage or 50
     local payout = math.floor(price * (percentage / 100))
     player.Functions.AddMoney('bank', payout)
-    exports.qbx_core:Notify(src, (locale('success.sold_car_for_price'):format(payout)), 'success', 5500)
+    exports.qbx_core:Notify(src, (locale('success.sold_car_for_price'):format(config.currencySymbol or "R$", payout)), 'success', 5500)
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ?', {plate})
 
     local vehicleName = VEHICLES[vehData.model] and VEHICLES[vehData.model].name or vehData.model
     sendWebhook("sellback", "🏦 Venda para Concessionária (Trade-In)", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Preço de Tabela:** R$ %s\n**Pago de Volta (%s%%):** R$ %s"):format(
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Preço de Tabela:** %s %s\n**Pago de Volta (%s%%):** %s %s"):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
             vehicleName, 
             plate, 
+            (config.currencySymbol or "R$"),
             price, 
             percentage, 
+            (config.currencySymbol or "R$"),
             payout
         ), 
         11032055, -- Purple (#a855f7)
@@ -331,17 +335,18 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
     TriggerEvent('qb-phone:server:sendNewMailToOffline', sellerCitizenId, {
         sender = locale('mail.sender'),
         subject = locale('mail.subject'),
-        message = (locale('mail.message'):format(sellerPayout, vehicleName))
+        message = (locale('mail.message'):format(config.currencySymbol or "R$", sellerPayout, vehicleName))
     })
 
     sendWebhook("buy", "🔑 Veículo Comprado", 
-        ("**Comprador:** %s %s (%s)\n**Vendedor:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor Pago:** R$ %s"):format(
+        ("**Comprador:** %s %s (%s)\n**Vendedor:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor Pago:** %s %s"):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
             sellerCitizenId, 
             vehicleName, 
             result[1].plate, 
+            (config.currencySymbol or "R$"),
             result[1].price
         ), 
         3899902, -- Blue (#3b82f6)
@@ -376,13 +381,14 @@ RegisterNetEvent('qbx_vehiclesales:server:deleteHistoryRecord', function(id)
 
         local vehicleName = VEHICLES[record.model] and VEHICLES[record.model].name or record.model
         sendWebhook("delete", "🗑️ Histórico Excluído", 
-            ("**Vendedor:** %s %s (%s)\n**Comprador original:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor da Transação:** R$ %s\n**Data da venda:** %s"):format(
+            ("**Vendedor:** %s %s (%s)\n**Comprador original:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor da Transação:** %s %s\n**Data da venda:** %s"):format(
                 player.PlayerData.charinfo.firstname, 
                 player.PlayerData.charinfo.lastname, 
                 player.PlayerData.citizenid, 
                 record.buyer_name or "N/A", 
                 vehicleName, 
                 record.plate, 
+                (config.currencySymbol or "R$"),
                 record.price or 0, 
                 record.date and tostring(record.date) or "N/A"
             ), 
