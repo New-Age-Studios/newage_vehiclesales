@@ -8,6 +8,39 @@ end
 
 local busyVehicles = {}
 
+local webhooks = require 'config.webhook'
+
+local function sendWebhook(action, title, description, color, fields, image)
+    local url = webhooks["webhook_" .. action]
+    if not url or url == "" then
+        url = webhooks["webhook_all"]
+    end
+    if not url or url == "" then return end
+
+    local embed = {
+        {
+            ["title"] = title,
+            ["description"] = description,
+            ["color"] = color or 16711680, -- default red
+            ["fields"] = fields or {},
+            ["footer"] = {
+                ["text"] = "New-Age Studios | " .. os.date("%d/%m/%Y %H:%M:%S"),
+            },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }
+    }
+    if image and image ~= "" then
+        embed[1]["image"] = { ["url"] = image }
+    end
+
+    PerformHttpRequest(url, function(statusCode, response, headers)
+        -- Handled or ignored
+    end, 'POST', json.encode({
+        username = "Concessionária de Usados Logs",
+        embeds = embed
+    }), { ['Content-Type'] = 'application/json' })
+end
+
 MySQL.ready(function()
     MySQL.query([[
         CREATE TABLE IF NOT EXISTS `newage_vehiclesales_history` (
@@ -149,6 +182,21 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     busyVehicles[vehicleData.plate] = nil
     TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1])
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+
+    local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
+    sendWebhook("cancel", "❌ Anúncio Cancelado", 
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Anúncio original de:** R$ %s"):format(
+            player.PlayerData.charinfo.firstname, 
+            player.PlayerData.charinfo.lastname, 
+            player.PlayerData.citizenid, 
+            vehicleName, 
+            result[1].plate, 
+            result[1].price
+        ), 
+        16347926, -- Orange (#f97316)
+        nil,
+        result[1].photo_url
+    )
 end)
 
 RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehicleData)
@@ -171,6 +219,22 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+
+    local vehicleName = VEHICLES[vehicleData.model] and VEHICLES[vehicleData.model].name or vehicleData.model
+    sendWebhook("sell", "🚗 Veículo Anunciado", 
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Valor:** R$ %s\n**Descrição:** %s"):format(
+            player.PlayerData.charinfo.firstname, 
+            player.PlayerData.charinfo.lastname, 
+            player.PlayerData.citizenid, 
+            vehicleName, 
+            vehicleData.plate, 
+            vehiclePrice, 
+            vehicleData.desc or "Nenhuma"
+        ), 
+        2279774, -- Green (#22c55e)
+        nil,
+        vehicleData.photoUrl
+    )
 end)
 
 RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
@@ -183,6 +247,23 @@ RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
     player.Functions.AddMoney('bank', payout)
     exports.qbx_core:Notify(src, (locale('success.sold_car_for_price'):format(payout)), 'success', 5500)
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ?', {plate})
+
+    local vehicleName = VEHICLES[vehData.model] and VEHICLES[vehData.model].name or vehData.model
+    sendWebhook("sellback", "🏦 Venda para Concessionária (Trade-In)", 
+        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Preço de Tabela:** R$ %s\n**Pago de Volta (%s%%):** R$ %s"):format(
+            player.PlayerData.charinfo.firstname, 
+            player.PlayerData.charinfo.lastname, 
+            player.PlayerData.citizenid, 
+            vehicleName, 
+            plate, 
+            price, 
+            percentage, 
+            payout
+        ), 
+        11032055, -- Purple (#a855f7)
+        nil,
+        nil
+    )
 end)
 
 RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
@@ -252,6 +333,21 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
         subject = locale('mail.subject'),
         message = (locale('mail.message'):format(sellerPayout, vehicleName))
     })
+
+    sendWebhook("buy", "🔑 Veículo Comprado", 
+        ("**Comprador:** %s %s (%s)\n**Vendedor:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor Pago:** R$ %s"):format(
+            player.PlayerData.charinfo.firstname, 
+            player.PlayerData.charinfo.lastname, 
+            player.PlayerData.citizenid, 
+            sellerCitizenId, 
+            vehicleName, 
+            result[1].plate, 
+            result[1].price
+        ), 
+        3899902, -- Blue (#3b82f6)
+        nil,
+        result[1].photo_url
+    )
 end)
 
 lib.callback.register('qbx_vehiclesales:server:getPlayerSalesHistory', function(source)
@@ -264,5 +360,38 @@ lib.callback.register('qbx_vehiclesales:server:getPlayerSalesHistory', function(
     local sold = MySQL.query.await('SELECT * FROM newage_vehiclesales_history WHERE seller = ? ORDER BY date DESC', {citizenid})
     
     return active, sold
+end)
+
+RegisterNetEvent('qbx_vehiclesales:server:deleteHistoryRecord', function(id)
+    local src = source
+    local player = exports.qbx_core:GetPlayer(src)
+    if not player then return end
+    
+    local citizenid = player.PlayerData.citizenid
+    
+    local record = MySQL.single.await('SELECT * FROM newage_vehiclesales_history WHERE id = ?', {id})
+    if record and record.seller == citizenid then
+        MySQL.query.await('DELETE FROM newage_vehiclesales_history WHERE id = ?', {id})
+        TriggerClientEvent('qbx_core:Notify', src, "Histórico removido com sucesso!", "success")
+
+        local vehicleName = VEHICLES[record.model] and VEHICLES[record.model].name or record.model
+        sendWebhook("delete", "🗑️ Histórico Excluído", 
+            ("**Vendedor:** %s %s (%s)\n**Comprador original:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor da Transação:** R$ %s\n**Data da venda:** %s"):format(
+                player.PlayerData.charinfo.firstname, 
+                player.PlayerData.charinfo.lastname, 
+                player.PlayerData.citizenid, 
+                record.buyer_name or "N/A", 
+                vehicleName, 
+                record.plate, 
+                record.price or 0, 
+                record.date and tostring(record.date) or "N/A"
+            ), 
+            15680580, -- Red (#ef4444)
+            nil,
+            record.photo_url
+        )
+    else
+        TriggerClientEvent('qbx_core:Notify', src, "Você não tem permissão para excluir este histórico.", "error")
+    end
 end)
 

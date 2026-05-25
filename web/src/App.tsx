@@ -251,6 +251,22 @@ const App: React.FC = () => {
     setMode('buy');
   };
 
+  const handleDeleteHistoryRecord = (id: number) => {
+    fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/deleteHistoryRecord`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    
+    setHistoryData(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        sold: prev.sold.filter(item => item.id !== id)
+      };
+    });
+  };
+
   if (!visible) return null;
 
   return (
@@ -305,6 +321,7 @@ const App: React.FC = () => {
             onCancelSale={handleCancelSale}
             onCancel={handleClose}
             onOpenContract={handleOpenContract}
+            onDeleteHistoryRecord={handleDeleteHistoryRecord}
           />
         )}
         {mode === 'camera' && (

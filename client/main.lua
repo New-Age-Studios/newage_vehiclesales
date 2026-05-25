@@ -588,6 +588,11 @@ RegisterNUICallback('selectHistory', function(_, cb)
     openHistoryTablet(true)
 end)
 
+RegisterNUICallback('deleteHistoryRecord', function(data, cb)
+    TriggerServerEvent('qbx_vehiclesales:server:deleteHistoryRecord', data.id)
+    cb('ok')
+end)
+
 local currentBusyPlate = nil
 
 RegisterNUICallback('close', function(_, cb)

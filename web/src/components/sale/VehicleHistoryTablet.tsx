@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActiveListing, SoldVehicle } from '../../types/history';
-import { X, Calendar, User, FileText, ArrowLeft, RefreshCw, Car, Coins, Tag, Receipt } from 'lucide-react';
+import { X, Calendar, User, FileText, ArrowLeft, RefreshCw, Car, Coins, Tag, Receipt, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,7 @@ interface VehicleHistoryTabletProps {
   onCancelSale: (listing: ActiveListing) => void;
   onCancel: () => void;
   onOpenContract: (sold: SoldVehicle) => void;
+  onDeleteHistoryRecord: (id: number) => void;
 }
 
 export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
@@ -28,10 +29,12 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
   onCancelSale,
   onCancel,
   onOpenContract,
+  onDeleteHistoryRecord,
 }) => {
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active');
   const [selectedActive, setSelectedActive] = useState<ActiveListing | null>(data.active?.[0] || null);
   const [selectedSold, setSelectedSold] = useState<SoldVehicle | null>(data.sold?.[0] || null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const formatPrice = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -303,12 +306,18 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
                 </div>
               </div>
 
-              <div className="mt-auto pt-4 border-t border-zinc-800/80">
+              <div className="mt-auto pt-4 border-t border-zinc-800/80 flex flex-col gap-2">
                 <Button 
                   onClick={() => onOpenContract(selectedSold)}
                   className="w-full bg-concessionaire hover:bg-concessionaire/90 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none flex items-center justify-center gap-2"
                 >
                   <FileText size={16} /> Visualizar Contrato
+                </Button>
+                <Button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-600/30 font-black uppercase text-[10px] tracking-widest h-11 rounded-xl focus:outline-none flex items-center justify-center gap-2 transition-all"
+                >
+                  <Trash2 size={14} /> Excluir do Histórico
                 </Button>
               </div>
             </div>
@@ -323,6 +332,46 @@ export const VehicleHistoryTablet: React.FC<VehicleHistoryTabletProps> = ({
         </div>
 
       </div>
+
+      {/* Delete Confirmation Overlay (Notification Style) */}
+      {showDeleteConfirm && selectedSold && (
+        <div className="absolute inset-0 z-[110] flex items-center justify-center p-8 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-[28px]" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-300">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Excluir do Histórico</h3>
+                <button onClick={() => setShowDeleteConfirm(false)} className="text-zinc-600 hover:text-white transition-colors focus:outline-none">
+                   <X size={20} />
+                </button>
+             </div>
+             
+             <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
+                Você tem certeza que deseja excluir o veículo <span className="text-white font-bold">{selectedSold.model.toUpperCase()}</span> ({selectedSold.plate}) do seu histórico de vendas? Esta ação não pode ser desfeita.
+             </p>
+
+             <div className="mt-8 flex space-x-3">
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={() => {
+                    onDeleteHistoryRecord(selectedSold.id);
+                    setShowDeleteConfirm(false);
+                    setSelectedSold(null);
+                  }}
+                  className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest h-14 rounded-xl focus:outline-none"
+                >
+                  Confirmar Exclusão
+                </Button>
+             </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
