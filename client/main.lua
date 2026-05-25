@@ -4,6 +4,8 @@ local activeZone = {}
 local currentVehicle = {}
 local entityZones = {}
 local occasionVehicles = {}
+local spawnedPeds = {}
+local spawnedProps = {}
 
 local function spawnOccasionsVehicles(vehicles)
     if zone then
@@ -187,6 +189,77 @@ local function sellData(data, plate)
     sellVehicleWait(data.price)
 end
 
+local function spawnSellPed(zoneName)
+    local cfg = config.zones[zoneName]
+    if not cfg or not cfg.pedModel then return end
+
+    if spawnedPeds[zoneName] then return end
+
+    local model = joaat(cfg.pedModel)
+    lib.requestModel(model)
+
+    local coords = cfg.sellVehicle
+    -- Spawn the ped. Subtract 1.0 from z to align with the ground.
+    local ped = CreatePed(4, model, coords.x, coords.y, coords.z - 1.0, coords.w, false, false)
+    
+    SetPedDefaultComponentVariation(ped)
+    SetEntityInvincible(ped, true)
+    SetBlockingOfNonTemporaryEvents(ped, true)
+    FreezeEntityPosition(ped, true)
+    SetModelAsNoLongerNeeded(model)
+
+    spawnedPeds[zoneName] = ped
+
+    -- Handle animation
+    if cfg.pedAnimDict and cfg.pedAnimName then
+        lib.requestAnimDict(cfg.pedAnimDict)
+        TaskPlayAnim(ped, cfg.pedAnimDict, cfg.pedAnimName, 8.0, -8.0, -1, 49, 0, false, false, false)
+        RemoveAnimDict(cfg.pedAnimDict)
+    end
+
+    -- Handle prop (e.g. tablet)
+    if cfg.pedProp then
+        local propModel = joaat(cfg.pedProp)
+        lib.requestModel(propModel)
+        
+        local prop = CreateObject(propModel, coords.x, coords.y, coords.z, false, false, false)
+        -- Attach to Left Hand (Bone 60309) for standard tablet holding animation
+        AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, 60309), 0.03, 0.002, -0.0, 10.0, 160.0, 0.0, true, true, false, true, 2, true)
+        SetModelAsNoLongerNeeded(propModel)
+        
+        spawnedProps[zoneName] = prop
+    end
+
+    -- Add target option
+    exports.ox_target:addLocalEntity(ped, {
+        {
+            icon = 'fas fa-handshake',
+            label = locale('menu.sell_vehicle'),
+            onSelect = function()
+                if cache.vehicle then
+                    TriggerEvent('qb-occasions:client:MainMenu')
+                else
+                    exports.qbx_core:Notify(locale('error.not_in_veh'), 'error', 4500)
+                end
+            end,
+            distance = 3.0
+        }
+    })
+end
+
+local function deleteSellPed(zoneName)
+    if spawnedPeds[zoneName] then
+        exports.ox_target:removeLocalEntity(spawnedPeds[zoneName], locale('menu.sell_vehicle'))
+        DeleteEntity(spawnedPeds[zoneName])
+        spawnedPeds[zoneName] = nil
+    end
+
+    if spawnedProps[zoneName] then
+        DeleteEntity(spawnedProps[zoneName])
+        spawnedProps[zoneName] = nil
+    end
+end
+
 local function createZones()
     for k, v in pairs(config.zones) do
 
@@ -200,8 +273,10 @@ local function createZones()
                 local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
                 despawnOccasionsVehicles()
                 spawnOccasionsVehicles(vehicles)
+                spawnSellPed(self.name)
             end,
             onExit = function()
+                deleteSellPed(zone)
                 despawnOccasionsVehicles()
                 zone = nil
             end,
@@ -214,6 +289,7 @@ end
 local function deleteZones()
     for k in pairs(activeZone) do
         activeZone[k]:remove()
+        deleteSellPed(k)
     end
     table.wipe(activeZone)
 end
@@ -396,30 +472,6 @@ end)
 
 CreateThread(function()
     for k, cars in pairs(config.zones) do
-        lib.zones.box({
-            coords = vec3(cars.sellVehicle.x, cars.sellVehicle.y, cars.sellVehicle.z),
-            size = vec3(3.0, 4.0, 3.0),
-            rotation = 0,
-            debug = false,
-            onEnter = function()
-                if cache.vehicle then
-                    lib.showTextUI(locale('menu.interaction'), {position = 'right-center'})
-                end
-            end,
-            onExit = function()
-                lib.hideTextUI()
-            end,
-            inside = function()
-                if IsControlJustReleased(0, 38) then
-                    if cache.vehicle then
-                        TriggerEvent('qb-occasions:client:MainMenu')
-                    else
-                        exports.qbx_core:Notify(locale('error.not_in_veh'), 'error', 4500)
-                    end
-                end
-            end
-        })
-
         if not config.useTarget then
             for k2, v in pairs(config.zones[k].vehicleSpots) do
                 lib.zones.box({

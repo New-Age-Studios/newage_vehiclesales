@@ -9,6 +9,10 @@ return {
             businessName = "Concessionária de Usados",
             sellVehicle = vec4(1235.61, 2733.44, 37.4, 0.42),
             buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5),
+            pedModel = 's_m_m_autoshop_01', -- Modelo do NPC vendedor
+            pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Dicionário de animação
+            pedAnimName = 'base', -- Nome da animação
+            pedProp = 'prop_cs_tablet', -- Prop que ele segura (Ex: tablet)
             polyzone = { -- The points that form the polyzone.
                 vec3(1338.3748779297, 2645.0153808594, 36.0),
                 vec3(1098.9381103516, 2621.7487792969, 36.0),
@@ -40,7 +44,7 @@ return {
                 vec4(1248.28, 2727.41, 38.53, 338.5),
                 vec4(1251.84, 2725.65, 38.52, 331.5),
                 vec4(1255.19, 2723.21, 38.44, 309.5),
-                vec4(1257.28, 2719.77, 38.49, 296.5),
+                vec4(1257.28, 2719.77, 38.49, 296.5)
             }
         }
     }
