@@ -859,33 +859,7 @@ RegisterNUICallback('takeVehicleBack', function(_, cb)
     cb('ok')
 end)
 
--- Shared helper: spawn a networked vehicle at the display slot coords after purchase or return.
--- Holds vehicleZoneLock for its entire duration so that refreshVehicles (broadcast to ALL
--- clients by the server) cannot run a conflicting despawn+spawn on the buying player's client
--- while this coroutine is suspended waiting for the spawn callback or collision load.
-local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
-    acquireZoneLock()
 
-    -- Synchronously remove the local display entity for this plate.
-    -- Entry is nil'd in occasionVehicles BEFORE deletion (see deleteDisplayVehicleByPlate)
-    -- so the pairs loop in despawnOccasionsVehicles skips it and cannot double-delete.
-    deleteDisplayVehicleByPlate(vehData.plate)
-
-    local targetZone = vehData.zone or zone
-    local coords = spawnCoords
-    if not coords then
-        coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
-    end
-
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true)
-    if not netId then
-        releaseZoneLock()
-        exports.qbx_core:Notify("Erro ao spawnar veículo. Contacte um administrador.", 'error', 4000)
-        return
-    end
-
-    -- Wait for the entity to replicate to this client (max 1 s)
-    local timeout = 100
 local function safeDeleteVehicle(veh)
     if not veh or not DoesEntityExist(veh) then return end
     SetEntityAsMissionEntity(veh, true, true)
