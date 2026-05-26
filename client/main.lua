@@ -2,7 +2,6 @@ local config = require 'config.config'
 local zone
 local activeZone = {}
 local currentVehicle = {}
-local entityZones = {}
 local occasionVehicles = {}
 local spawnedPeds = {}
 local spawnedProps = {}
@@ -13,11 +12,29 @@ local pendingSellData = nil
 local targetSellSpot = nil
 local sellSpotBlip = nil
 
--- Mutex: true while a buy/return vehicle spawn is in progress.
--- Prevents refreshVehicles from running a conflicting despawn+spawn cycle.
-local isProcessingVehicleAction = false
--- Mutex: prevents concurrent refreshVehicles executions.
-local isRefreshingVehicles = false
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Zone vehicle display mutex
+-- All operations that create or destroy local display entities MUST hold this
+-- lock. This prevents the mass duplication caused by concurrent coroutines
+-- (lib.requestModel / lib.callback.await yield points) interleaving:
+--   • zone onEnter spawn
+--   • refreshVehicles despawn+spawn
+--   • spawnNetworkedVehicleAtSlot (buy/return)
+-- ─────────────────────────────────────────────────────────────────────────────
+local vehicleZoneLock = false
+
+local function acquireZoneLock()
+    local waited = 0
+    while vehicleZoneLock and waited < 10000 do
+        Wait(50)
+        waited = waited + 50
+    end
+    vehicleZoneLock = true
+end
+
+local function releaseZoneLock()
+    vehicleZoneLock = false
+end
 
 local function spawnDebugVehicles(zoneName)
     if not config.debug then return end
@@ -69,75 +86,92 @@ local function DeleteDisplayVehicle(veh)
 end
 
 local function spawnOccasionsVehicles(vehicles)
-    if zone then
-        local oSlot = config.zones[zone].vehicleSpots
-        occasionVehicles[zone] = {}
-        if vehicles then
-            local count = 0
-            for i = 1, #vehicles, 1 do
-                if vehicles[i].zone == zone then
-                    count = count + 1
-                    if count <= #oSlot then
-                        local model = joaat(vehicles[i].model)
-                        lib.requestModel(model)
-                        occasionVehicles[zone][count] = {
-                            car = CreateVehicle(model, oSlot[count].x, oSlot[count].y, oSlot[count].z, false, false),
-                            loc = oSlot[count],
-                            price = vehicles[i].price,
-                            owner = vehicles[i].seller,
-                            model = vehicles[i].model,
-                            plate = vehicles[i].plate,
-                            oid = vehicles[i].occasionid,
-                            desc = vehicles[i].description,
-                            mods = vehicles[i].mods,
-                            fuelType = vehicles[i].fuel_type,
-                            colorRGB = vehicles[i].color_rgb,
-                            isExotic = vehicles[i].is_exotic,
-                            transmission = vehicles[i].transmission,
-                            photo_url = vehicles[i].photo_url
-                        }
+    -- Must be called with vehicleZoneLock held.
+    -- lib.requestModel yields, so without the lock a concurrent refreshVehicles
+    -- could start a second spawn on top of this one, causing mass duplication.
+    if not zone then return end
+    local currentZone = zone -- snapshot; zone may change during awaits
+    local oSlot = config.zones[currentZone].vehicleSpots
+    occasionVehicles[currentZone] = {}
+    if not vehicles then return end
 
-                        lib.setVehicleProperties(occasionVehicles[zone][count].car, json.decode(vehicles[i].mods))
+    local count = 0
+    for i = 1, #vehicles do
+        if zone ~= currentZone then break end -- exited zone mid-spawn, abort
+        local v = vehicles[i]
+        if v.zone == currentZone then
+            count = count + 1
+            if count > #oSlot then break end
 
-                        SetModelAsNoLongerNeeded(model)
-                        -- Apply heading BEFORE grounding so the vehicle settles in the correct orientation
-                        SetEntityHeading(occasionVehicles[zone][count].car, oSlot[count].w)
-                        SetVehicleOnGroundProperly(occasionVehicles[zone][count].car)
-                        SetEntityInvincible(occasionVehicles[zone][count].car, true)
-                        SetVehicleDoorsLocked(occasionVehicles[zone][count].car, 3)
-                        SetVehicleNumberPlateText(occasionVehicles[zone][count].car, occasionVehicles[zone][count].plate)
-                        FreezeEntityPosition(occasionVehicles[zone][count].car, true)
-                        if config.useTarget then
-                            if not entityZones then entityZones = {} end
-                            entityZones[count] = exports.ox_target:addLocalEntity(occasionVehicles[zone][count].car, {
-                                {
-                                    icon = 'fas fa-car',
-                                    label = locale('menu.view_contract'),
-                                    onSelect = function()
-                                        TriggerEvent('qb-vehiclesales:client:OpenContract', count)
-                                    end,
-                                    distance = 2.0
-                                }
-                            })
-                        end
-                    end
-                end
+            local model = joaat(v.model)
+            lib.requestModel(model) -- yields — lock prevents concurrent entry here
+
+            if zone ~= currentZone then
+                -- Zone changed while we were loading the model; clean up and abort
+                SetModelAsNoLongerNeeded(model)
+                break
+            end
+
+            local car = CreateVehicle(model, oSlot[count].x, oSlot[count].y, oSlot[count].z, false, false)
+            SetModelAsNoLongerNeeded(model)
+
+            occasionVehicles[currentZone][count] = {
+                car       = car,
+                loc       = oSlot[count],
+                price     = v.price,
+                owner     = v.seller,
+                model     = v.model,
+                plate     = v.plate,
+                oid       = v.occasionid,
+                desc      = v.description,
+                mods      = v.mods,
+                fuelType  = v.fuel_type,
+                colorRGB  = v.color_rgb,
+                isExotic  = v.is_exotic,
+                transmission = v.transmission,
+                photo_url = v.photo_url,
+                hasTarget = false, -- set below if ox_target is active
+            }
+
+            lib.setVehicleProperties(car, json.decode(v.mods))
+            -- Apply heading BEFORE grounding so vehicle settles at correct angle
+            SetEntityHeading(car, oSlot[count].w)
+            SetVehicleOnGroundProperly(car)
+            SetEntityInvincible(car, true)
+            SetVehicleDoorsLocked(car, 3)
+            SetVehicleNumberPlateText(car, v.plate)
+            FreezeEntityPosition(car, true)
+
+            if config.useTarget then
+                exports.ox_target:addLocalEntity(car, {
+                    {
+                        icon = 'fas fa-car',
+                        label = locale('menu.view_contract'),
+                        onSelect = function()
+                            TriggerEvent('qb-vehiclesales:client:OpenContract', count)
+                        end,
+                        distance = 2.0
+                    }
+                })
+                occasionVehicles[currentZone][count].hasTarget = true
             end
         end
     end
 end
 
 local function despawnOccasionsVehicles()
+    -- Must be called with vehicleZoneLock held (or during onExit after lock force-release).
     if not zone then return end
     local oSlot = config.zones[zone].vehicleSpots
 
-    -- First clean up tracked display vehicles and their target zones
+    -- Iterate with PAIRS, not ipairs.
+    -- ipairs stops at the first nil hole (created by deleteDisplayVehicleByPlate);
+    -- pairs visits every non-nil entry regardless of gaps in the sequence.
     if occasionVehicles[zone] then
-        for i, data in ipairs(occasionVehicles[zone]) do
+        for _, data in pairs(occasionVehicles[zone]) do
             if data and data.car then
-                if entityZones[i] and config.useTarget then
+                if data.hasTarget and config.useTarget then
                     exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
-                    entityZones[i] = nil
                 end
                 DeleteDisplayVehicle(data.car)
             end
@@ -145,7 +179,8 @@ local function despawnOccasionsVehicles()
         occasionVehicles[zone] = nil
     end
 
-    -- Fallback: also check proximity for any stray local vehicles at display spots
+    -- Safety sweep: catch any stray local (non-networked) vehicles still sitting
+    -- at a display spot that weren't tracked (e.g. orphaned from a previous crash).
     for i = 1, #oSlot do
         local loc = oSlot[i]
         local strayVeh = GetClosestVehicle(loc.x, loc.y, loc.z, 1.5, 0, 70)
@@ -153,8 +188,6 @@ local function despawnOccasionsVehicles()
             DeleteDisplayVehicle(strayVeh)
         end
     end
-
-    table.wipe(entityZones)
 end
 
 local function deleteDisplayVehicleByPlate(plate)
@@ -162,16 +195,15 @@ local function deleteDisplayVehicleByPlate(plate)
     for i = 1, #occasionVehicles[zone] do
         local data = occasionVehicles[zone][i]
         if data and data.plate == plate then
-            -- Remove target zone first
-            if entityZones[i] and config.useTarget then
+            -- Remove ox_target interaction first
+            if data.hasTarget and config.useTarget then
                 exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
-                entityZones[i] = nil
             end
-            -- Nil the table entry BEFORE deleting so despawnOccasionsVehicles (called by
-            -- refreshVehicles) cannot try to delete the same entity a second time.
+            -- Nil the entry BEFORE deleting so despawnOccasionsVehicles (pairs loop)
+            -- skips it and cannot attempt a second deletion on the same handle.
             occasionVehicles[zone][i] = nil
             if DoesEntityExist(data.car) then
-                DeleteDisplayVehicle(data.car) -- synchronous — returns only after deletion
+                DeleteDisplayVehicle(data.car) -- synchronous
             end
             break
         end
@@ -629,9 +661,17 @@ local function createZones()
             debug = config.debug,
             onEnter = function(self)
                 zone = self.name
+                -- Acquire the zone lock before any await so that a concurrent
+                -- refreshVehicles event cannot start a second spawn cycle while
+                -- lib.requestModel yields inside spawnOccasionsVehicles.
+                acquireZoneLock()
                 local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
-                despawnOccasionsVehicles()
-                spawnOccasionsVehicles(vehicles)
+                -- Re-check zone: player might have exited during the await
+                if zone == self.name then
+                    despawnOccasionsVehicles()
+                    spawnOccasionsVehicles(vehicles)
+                end
+                releaseZoneLock()
                 spawnSellPed(self.name)
                 spawnDebugVehicles(self.name)
             end,
@@ -639,6 +679,10 @@ local function createZones()
                 if isPositioningVehicle then
                     cancelVehicleSale("Você se afastou da concessionária. A venda foi cancelada.")
                 end
+                -- Force-release the lock: if the player exits while a spawn is
+                -- mid-execution (e.g. during lib.requestModel), we must unblock
+                -- other waiters rather than leaving them stuck.
+                vehicleZoneLock = false
                 deleteSellPed(zone)
                 despawnDebugVehicles(zone)
                 despawnOccasionsVehicles()
@@ -910,15 +954,15 @@ RegisterNUICallback('takeVehicleBack', function(_, cb)
 end)
 
 -- Shared helper: spawn a networked vehicle at the display slot coords after purchase or return.
--- Guarded by isProcessingVehicleAction so that refreshVehicles (broadcast to all clients
--- by the server) waits until the spawn is fully complete before trying to despawn/respawn
--- display entities — preventing the duplication visible to multiple nearby players.
+-- Holds vehicleZoneLock for its entire duration so that refreshVehicles (broadcast to ALL
+-- clients by the server) cannot run a conflicting despawn+spawn on the buying player's client
+-- while this coroutine is suspended waiting for the spawn callback or collision load.
 local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
-    isProcessingVehicleAction = true
+    acquireZoneLock()
 
     -- Synchronously remove the local display entity for this plate.
-    -- The entry is nil'd in occasionVehicles before deletion, so the subsequent
-    -- refreshVehicles despawn loop won't try to double-delete the same handle.
+    -- Entry is nil'd in occasionVehicles BEFORE deletion (see deleteDisplayVehicleByPlate)
+    -- so the pairs loop in despawnOccasionsVehicles skips it and cannot double-delete.
     deleteDisplayVehicleByPlate(vehData.plate)
 
     local targetZone = vehData.zone or zone
@@ -929,7 +973,7 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
 
     local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true)
     if not netId then
-        isProcessingVehicleAction = false
+        releaseZoneLock()
         exports.qbx_core:Notify("Erro ao spawnar veículo. Contacte um administrador.", 'error', 4000)
         return
     end
@@ -943,7 +987,7 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
 
     local veh = NetToVeh(netId)
     if not veh or veh == 0 then
-        isProcessingVehicleAction = false
+        releaseZoneLock()
         exports.qbx_core:Notify("Veículo não encontrado após spawn.", 'error', 4000)
         return
     end
@@ -972,8 +1016,8 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
     Wait(0)
     SetVehicleHandbrake(veh, false)
 
-    -- Release the mutex BEFORE notifying so refreshVehicles can proceed
-    isProcessingVehicleAction = false
+    -- Release lock BEFORE the notification so refreshVehicles can proceed immediately
+    releaseZoneLock()
 
     exports.qbx_core:Notify(locale(notifyKey or 'success.vehicle_bought'), 'success', 2500)
     return veh
@@ -1052,26 +1096,28 @@ end)
 RegisterNetEvent('qb-occasion:client:refreshVehicles', function()
     if not zone then return end
 
-    -- If another refresh is already running, skip this one to avoid double-spawning
-    -- (the ongoing refresh will fetch the latest DB state anyway).
-    if isRefreshingVehicles then return end
-    isRefreshingVehicles = true
+    -- acquireZoneLock blocks until the zone lock is free.
+    -- This handles ALL of the following concurrent scenarios:
+    --   • Another refreshVehicles is already despawn+spawning
+    --   • zone onEnter is mid-spawn (suspended at lib.requestModel)
+    --   • spawnNetworkedVehicleAtSlot (buy/return) is mid-execution
+    -- Without this lock all three could interleave their Wait() yields and
+    -- create multiple overlapping sets of display entities (mass duplication).
+    acquireZoneLock()
 
-    -- If this client is mid-spawn (buy / return flow), wait for it to finish first.
-    -- This prevents refreshVehicles from despawning the display entities WHILE
-    -- spawnNetworkedVehicleAtSlot is between deleteDisplayVehicleByPlate and spawn,
-    -- which is the main cause of ghost duplicates visible to multiple nearby players.
-    local waited = 0
-    while isProcessingVehicleAction and waited < 5000 do
-        Wait(100)
-        waited = waited + 100
+    if not zone then
+        -- Player exited the zone while we were waiting for the lock
+        releaseZoneLock()
+        return
     end
 
     local vehicles = lib.callback.await('qb-occasions:server:getVehicles')
-    despawnOccasionsVehicles()
-    spawnOccasionsVehicles(vehicles)
+    if zone then -- recheck after await
+        despawnOccasionsVehicles()
+        spawnOccasionsVehicles(vehicles)
+    end
 
-    isRefreshingVehicles = false
+    releaseZoneLock()
 end)
 
 AddEventHandler('qb-vehiclesales:client:SellVehicle', function()
