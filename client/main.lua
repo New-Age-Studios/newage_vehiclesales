@@ -43,6 +43,17 @@ local function despawnDebugVehicles(zoneName)
     debugVehicles[zoneName] = nil
 end
 
+local function safeDeleteVehicle(veh)
+    if not veh or not DoesEntityExist(veh) then return end
+    SetEntityAsMissionEntity(veh, true, true)
+    SetEntityAsNoLongerNeeded(veh)
+    for _ = 1, 10 do
+        if not DoesEntityExist(veh) then break end
+        DeleteVehicle(veh)
+        Wait(50)
+    end
+end
+
 local function teardownDisplayVehicles()
     if not zone then return end
     if occasionVehicles[zone] then
@@ -384,9 +395,9 @@ local function completeVehicleSale()
 
     local veh = cache.vehicle
     if veh and veh ~= 0 then
-        -- DeleteDisplayVehicle is synchronous: this line blocks until the vehicle is
+        -- safeDeleteVehicle is synchronous: this line blocks until the vehicle is
         -- actually gone from the world before we continue.
-        DeleteDisplayVehicle(veh)
+        safeDeleteVehicle(veh)
     end
 
     isProcessingVehicleAction = false
@@ -890,17 +901,6 @@ RegisterNUICallback('takeVehicleBack', function(_, cb)
     cb('ok')
 end)
 
-
-local function safeDeleteVehicle(veh)
-    if not veh or not DoesEntityExist(veh) then return end
-    SetEntityAsMissionEntity(veh, true, true)
-    SetEntityAsNoLongerNeeded(veh)
-    for _ = 1, 10 do
-        if not DoesEntityExist(veh) then break end
-        DeleteVehicle(veh)
-        Wait(50)
-    end
-end
 
 -- Shared helper: spawn a networked vehicle at the display slot coords after purchase or return.
 local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
