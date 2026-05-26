@@ -43,7 +43,7 @@ local function despawnDebugVehicles(zoneName)
     debugVehicles[zoneName] = nil
 end
 
-local function DeleteGhostVehicle(plate)
+local function DeleteGhostVehicle(plate, immediate)
     if not zone or not occasionVehicles[zone] then return end
     
     local veh = nil
@@ -66,12 +66,14 @@ local function DeleteGhostVehicle(plate)
     occasionVehicles[zone][slot].car = nil
     
     CreateThread(function()
-        for alpha = 255, 0, -15 do
-            if DoesEntityExist(veh) then
-                SetEntityAlpha(veh, math.max(alpha, 0), false)
-                Wait(20)
-            else
-                break
+        if not immediate then
+            for alpha = 255, 0, -15 do
+                if DoesEntityExist(veh) then
+                    SetEntityAlpha(veh, math.max(alpha, 0), false)
+                    Wait(20)
+                else
+                    break
+                end
             end
         end
 
@@ -974,6 +976,9 @@ end)
 
 -- Shared helper: spawn a networked vehicle at the display slot coords after purchase or return.
 local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
+    DeleteGhostVehicle(vehData.plate, true)
+    Wait(300)
+
     local targetZone = vehData.zone or zone
     local coords = spawnCoords
     if not coords then
