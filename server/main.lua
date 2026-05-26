@@ -7,6 +7,81 @@ local function generateOID()
 end
 
 local busyVehicles = {}
+local displayVehicles = {} -- { [zone] = { {netId, plate, loc, price, owner, model, desc, mods, fuelType, colorRGB, isExotic, transmission, photo_url}, ... } }
+
+local function refreshDisplayVehicles(zone)
+    if not zone or not config.zones[zone] then return end
+    
+    -- Despawn existing display entities for this zone
+    if displayVehicles[zone] then
+        for i = 1, #displayVehicles[zone] do
+            local netId = displayVehicles[zone][i].netId
+            if netId then
+                local ent = NetworkGetEntityFromNetworkId(netId)
+                if DoesEntityExist(ent) then DeleteEntity(ent) end
+            end
+        end
+    end
+    displayVehicles[zone] = {}
+    
+    local spots = config.zones[zone].vehicleSpots
+    local result = MySQL.query.await('SELECT * FROM newage_vehiclesales WHERE zone = ?', {zone})
+    
+    if result and #result > 0 then
+        local count = 0
+        for i = 1, #result do
+            count = count + 1
+            if count > #spots then break end
+            
+            local v = result[i]
+            local coords = spots[count]
+            local vehmods = json.decode(v.mods)
+            
+            local netId = qbx.spawnVehicle({
+                model = v.model, 
+                spawnSource = coords, 
+                warp = false, 
+                props = vehmods
+            })
+            
+            local ent = NetworkGetEntityFromNetworkId(netId)
+            if ent and ent ~= 0 then
+                SetVehicleNumberPlateText(ent, v.plate)
+                FreezeEntityPosition(ent, true)
+                SetVehicleDoorsLocked(ent, 3)
+            end
+            
+            -- Prepare data for clients
+            local vData = {
+                netId        = netId,
+                plate        = v.plate,
+                model        = v.model,
+                owner        = v.seller,
+                price        = v.price,
+                desc         = v.description,
+                mods         = v.mods,
+                oid          = v.occasionid,
+                fuelType     = v.fuel_type,
+                colorRGB     = v.color_rgb,
+                isExotic     = (v.is_exotic == 1 or v.is_exotic == true),
+                transmission = v.transmission,
+                photo_url    = v.photo_url,
+                loc          = coords,
+                zone         = zone,
+                slotIndex    = count
+            }
+            
+            table.insert(displayVehicles[zone], vData)
+        end
+    end
+    
+    -- Sync updated list to all clients
+    TriggerClientEvent('qb-occasion:client:syncDisplayVehicles', -1, zone, displayVehicles[zone])
+end
+
+lib.callback.register('qb-occasions:server:getDisplayVehicles', function(source, zone)
+    return displayVehicles[zone] or {}
+end)
 
 local webhooks = require 'config.webhook'
 
@@ -78,6 +153,12 @@ MySQL.ready(function()
         
         checkAndAddColumn("newage_vehiclesales", "zone", "varchar(50) DEFAULT NULL")
         checkAndAddColumn("newage_vehiclesales_history", "zone", "varchar(50) DEFAULT NULL")
+        
+        -- Spawn display vehicles for all zones after DB is ready
+        Wait(2000)
+        for z, _ in pairs(config.zones) do
+            refreshDisplayVehicles(z)
+        end
     end)
 end)
 
@@ -192,7 +273,9 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
     TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1], vehicleData.loc)
-    TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+    
+    local zoneStr = result[1].zone or vehicleData.zone
+    if zoneStr then refreshDisplayVehicles(zoneStr) end
 
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
     sendWebhook("cancel", "❌ Anúncio Cancelado", 
@@ -231,7 +314,8 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         vehicleData.zone
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
-    TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+    
+    if vehicleData.zone then refreshDisplayVehicles(vehicleData.zone) end
 
     local vehicleName = VEHICLES[vehicleData.model] and VEHICLES[vehicleData.model].name or vehicleData.model
     sendWebhook("sell", "🚗 Veículo Anunciado", 
@@ -317,7 +401,9 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
     end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
     TriggerClientEvent('qb-occasions:client:BuyFinished', src, result[1], vehicleData.loc)
-    TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
+    
+    local zoneStr = result[1].zone or vehicleData.zone
+    if zoneStr then refreshDisplayVehicles(zoneStr) end
     
     -- Insert transaction into history before deleting the active listing
     MySQL.insert([[
