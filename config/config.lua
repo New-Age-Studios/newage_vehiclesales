@@ -7,7 +7,7 @@ return {
     FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
 
     -- Idioma do script ('pt-br' ou 'en')
-    language = 'en', -- Idioma do script ('pt-br' ou 'en')
+    language = 'pt-br', -- Idioma do script ('pt-br' ou 'en')
 
     -- Configurações da Venda
     enableSellBack = true, -- Ativa/desativa a opção de vender veículo de volta para a concessionária
@@ -28,6 +28,13 @@ return {
 
     -- Unidade de distância exibida no contrato ("km" ou "miles")
     mileageUnit = "km",
+    -- ──────────────────────────────────────────────────────────────────────
+
+    -- ── Integração de VIN (Chassi) ─────────────────────────────────────────
+    -- Ative se o seu servidor usa um MDT/sistema que exige a coluna `vin`
+    -- na tabela player_vehicles (ex: piotreq_gpt).
+    -- O gerador e a lógica de integração ficam em: server/vin_bridge.lua
+    generateVIN = true,
     -- ──────────────────────────────────────────────────────────────────────
 
     -- Configurações do Target

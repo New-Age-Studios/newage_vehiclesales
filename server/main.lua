@@ -181,7 +181,14 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
         return
     end
 
-    MySQL.insert('INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state) VALUES (?, ?, ?, ?, ?, ?, ?)', {player.PlayerData.license, player.PlayerData.citizenid, vehicleData.model, joaat(vehicleData.model), vehicleData.mods, vehicleData.plate, 0})
+    VINBridge.insert({
+        license   = player.PlayerData.license,
+        citizenid = player.PlayerData.citizenid,
+        model     = vehicleData.model,
+        hash      = joaat(vehicleData.model),
+        mods      = vehicleData.mods,
+        plate     = vehicleData.plate,
+    })
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
     TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1], vehicleData.loc)
@@ -290,15 +297,14 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
     local fee = config.dealerFee or 0
     local sellerPayout = math.ceil(result[1].price * (1 - (fee / 100)))
     player.Functions.RemoveMoney('bank', result[1].price)
-    MySQL.insert(
-        'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state) VALUES (?, ?, ?, ?, ?, ?, ?)', {
-            player.PlayerData.license,
-            player.PlayerData.citizenid, result[1].model,
-            GetHashKey(result[1].model),
-            result[1].mods,
-            result[1].plate,
-            0
-        })
+    VINBridge.insert({
+        license   = player.PlayerData.license,
+        citizenid = player.PlayerData.citizenid,
+        model     = result[1].model,
+        hash      = GetHashKey(result[1].model),
+        mods      = result[1].mods,
+        plate     = result[1].plate,
+    })
     if sellerData then
         sellerData.Functions.AddMoney('bank', sellerPayout)
     else

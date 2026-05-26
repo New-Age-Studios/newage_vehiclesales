@@ -22,6 +22,7 @@ server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'config/webhook.lua',
     'server/mileage_bridge.lua', -- Adaptador de quilometragem server-side (edite para trocar o sistema)
+    'server/vin_bridge.lua',     -- Gerador de VIN/Chassi (edite para trocar o sistema de MDT)
     'server/main.lua'
 }
 
