@@ -6,6 +6,38 @@ local entityZones = {}
 local occasionVehicles = {}
 local spawnedPeds = {}
 local spawnedProps = {}
+local debugVehicles = {}
+
+local function spawnDebugVehicles(zoneName)
+    if not config.debug then return end
+    local cfg = config.zones[zoneName]
+    if not cfg then return end
+
+    local model = joaat('blista') -- Modelo de carro padrão para debug
+    lib.requestModel(model)
+
+    debugVehicles[zoneName] = {}
+
+    for i, spot in ipairs(cfg.vehicleSpots) do
+        local veh = CreateVehicle(model, spot.x, spot.y, spot.z, spot.w, false, false)
+        SetEntityAlpha(veh, 100, false)
+        SetEntityCollision(veh, false, false)
+        FreezeEntityPosition(veh, true)
+        SetVehicleDoorsLocked(veh, 2)
+        SetModelAsNoLongerNeeded(model)
+        table.insert(debugVehicles[zoneName], veh)
+    end
+end
+
+local function despawnDebugVehicles(zoneName)
+    if not debugVehicles[zoneName] then return end
+    for _, veh in ipairs(debugVehicles[zoneName]) do
+        if DoesEntityExist(veh) then
+            DeleteEntity(veh)
+        end
+    end
+    debugVehicles[zoneName] = nil
+end
 
 local function spawnOccasionsVehicles(vehicles)
     if zone then
@@ -129,14 +161,14 @@ local function openMainMenu(bool)
     })
 end
 
-local function openHistoryTablet(bool)
+local function openHistoryTablet(bool, targetZone)
     if not bool then
         SetNuiFocus(false, false)
         SendNUIMessage({ action = 'close' })
         return
     end
 
-    local active, sold = lib.callback.await('qbx_vehiclesales:server:getPlayerSalesHistory', false)
+    local active, sold = lib.callback.await('qbx_vehiclesales:server:getPlayerSalesHistory', false, targetZone)
 
     local formattedActive = {}
     if active then
@@ -186,7 +218,7 @@ local function openHistoryTablet(bool)
         action = 'openHistoryTablet',
         currencySymbol = config.currencySymbol or "R$",
         currencyCode = config.currencyCode or "BRL",
-        bizName = zone and config.zones[zone].businessName or "Concessionária de Usados",
+        bizName = targetZone and config.zones[targetZone] and config.zones[targetZone].businessName or "Concessionária de Usados",
         uiTranslations = getUiTranslations(),
         active = formattedActive,
         sold = formattedSold,
@@ -292,6 +324,7 @@ local function sellData(data, plate)
     vehicleData.isExotic = data.vehicleData.isExotic
     vehicleData.transmission = data.vehicleData.transmission
     vehicleData.photoUrl = data.vehicleData.photoUrl
+    vehicleData.zone = zone
     
     TriggerServerEvent('qb-occasions:server:sellVehicle', data.price, vehicleData)
     sellVehicleWait(data.price)
@@ -375,16 +408,18 @@ local function createZones()
             name = k,
             points = v.polyzone,
             thickness = 50,
-            debug = false,
+            debug = config.debug,
             onEnter = function(self)
                 zone = self.name
                 local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
                 despawnOccasionsVehicles()
                 spawnOccasionsVehicles(vehicles)
                 spawnSellPed(self.name)
+                spawnDebugVehicles(self.name)
             end,
             onExit = function()
                 deleteSellPed(zone)
+                despawnDebugVehicles(zone)
                 despawnOccasionsVehicles()
                 zone = nil
             end,
@@ -597,7 +632,7 @@ end)
 RegisterNUICallback('selectHistory', function(_, cb)
     SetNuiFocus(false, false)
     cb('ok')
-    openHistoryTablet(true)
+    openHistoryTablet(true, zone)
 end)
 
 RegisterNUICallback('deleteHistoryRecord', function(data, cb)
@@ -789,10 +824,224 @@ CreateThread(function()
     end
 end)
 
+RegisterNUICallback('selectHistory', function(_, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+    openHistoryTablet(true, zone)
+end)
+
+RegisterNUICallback('deleteHistoryRecord', function(data, cb)
+    TriggerServerEvent('qbx_vehiclesales:server:deleteHistoryRecord', data.id)
+    cb('ok')
+end)
+
+local currentBusyPlate = nil
+
+RegisterNUICallback('close', function(_, cb)
+    if currentBusyPlate then
+        lib.callback.await('qbx_vehiclesales:server:setVehicleBusy', false, currentBusyPlate, false)
+        currentBusyPlate = nil
+    end
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+RegisterNUICallback('buyVehicle', function(_, cb)
+    SetNuiFocus(false, false)
+    if currentBusyPlate then
+        lib.callback.await('qbx_vehiclesales:server:setVehicleBusy', false, currentBusyPlate, false)
+        currentBusyPlate = nil
+    end
+    TriggerServerEvent('qb-occasions:server:buyVehicle', currentVehicle)
+    cb('ok')
+end)
+
+RegisterNUICallback('takeVehicleBack', function(_, cb)
+    TriggerServerEvent('qb-occasions:server:ReturnVehicle', currentVehicle)
+    cb('ok')
+end)
+
+RegisterNetEvent('qb-occasions:client:BuyFinished', function(vehData)
+    DoScreenFadeOut(250)
+    Wait(500)
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, config.zones[zone].buyVehicle, false)
+    local timeout = 100
+    while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
+        Wait(10)
+        timeout -= 1
+    end
+    local veh = NetToVeh(netId)
+    SetEntityHeading(veh, config.zones[zone].buyVehicle.w)
+    SetVehicleFuelLevel(veh, 100)
+    exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
+    Wait(500)
+    DoScreenFadeIn(250)
+    currentVehicle = {}
+end)
+
+AddEventHandler('qb-occasions:client:SellBackCar', function()
+    if cache.vehicle then
+        local vehicleData = {}
+        vehicleData.model = GetEntityModel(cache.vehicle)
+        vehicleData.plate = GetVehicleNumberPlateText(cache.vehicle)
+        local owned, balance = lib.callback.await('qbx_vehiclesales:server:checkVehicleOwner', false, vehicleData.plate)
+        if owned then
+            if not balance or balance < 1 then
+                TriggerServerEvent('qb-occasions:server:sellVehicleBack', vehicleData)
+                DeleteVehicle(cache.vehicle)
+            else
+                exports.qbx_core:Notify(locale('error.finish_payments'), 'error', 3500)
+            end
+        else
+            exports.qbx_core:Notify(locale('error.not_your_vehicle'), 'error', 3500)
+        end
+    else
+        exports.qbx_core:Notify(locale('error.not_in_veh'), 'error', 4500)
+    end
+end)
+
+RegisterNetEvent('qb-occasions:client:ReturnOwnedVehicle', function(vehData)
+    DoScreenFadeOut(250)
+    Wait(500)
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, config.zones[zone].buyVehicle, false)
+    local timeout = 100
+    while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
+        Wait(10)
+        timeout -= 1
+    end
+    local veh = NetToVeh(netId)
+    SetEntityHeading(veh, config.zones[zone].buyVehicle.w)
+    SetVehicleFuelLevel(veh, 100)
+    exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
+    Wait(500)
+    DoScreenFadeIn(250)
+    currentVehicle = {}
+end)
+
+RegisterNetEvent('qb-occasion:client:refreshVehicles', function()
+    if zone then
+        local vehicles = lib.callback.await('qb-occasions:server:getVehicles')
+        despawnOccasionsVehicles()
+        spawnOccasionsVehicles(vehicles)
+    end
+end)
+
+AddEventHandler('qb-vehiclesales:client:SellVehicle', function()
+    local VehiclePlate = qbx.getVehiclePlate(cache.vehicle)
+    local owned, balance = lib.callback.await('qbx_vehiclesales:server:checkVehicleOwner', false, VehiclePlate)
+
+    if not owned then
+        return exports.qbx_core:Notify(locale('error.not_your_vehicle'), 'error', 3500)
+    end
+
+    if balance and balance > 0 then
+        return exports.qbx_core:Notify(locale('error.finish_payments'), 'error', 3500)
+    end
+
+    local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
+    if not vehicles or #vehicles < #config.zones[zone].vehicleSpots then
+        openSellContract(true)
+    else
+        exports.qbx_core:Notify(locale('error.no_space_on_lot'), 'error', 3500)
+    end
+end)
+
+AddEventHandler('qb-vehiclesales:client:OpenContract', function(contract)
+    currentVehicle = occasionVehicles[zone][contract]
+    if not currentVehicle then
+        exports.qbx_core:Notify(locale('error.not_for_sale'), 'error', 7500)
+        return
+    end
+
+    local isAvailable = lib.callback.await('qbx_vehiclesales:server:setVehicleBusy', false, currentVehicle.plate, true)
+    if not isAvailable then
+        exports.qbx_core:Notify('Este contrato já está sendo analisado por outro interessado.', 'error', 3500)
+        return
+    end
+
+    currentBusyPlate = currentVehicle.plate
+
+    local info = lib.callback.await('qb-occasions:server:getSellerInformation', false, currentVehicle.owner)
+    if info then
+        info.charinfo = json.decode(info.charinfo)
+    else
+        info = {}
+        info.charinfo = {
+            firstname = locale('charinfo.firstname'),
+            lastname = locale('charinfo.lastname'),
+            account = locale('charinfo.account'),
+            phone = locale('charinfo.phone')
+        }
+    end
+
+    openBuyContract(info, currentVehicle)
+end)
+
+AddEventHandler('qb-occasions:client:MainMenu', function()
+    openMainMenu(true)
+end)
+
+CreateThread(function()
+    for k, cars in pairs(config.zones) do
+        if not config.useTarget then
+            for k2, v in pairs(config.zones[k].vehicleSpots) do
+                lib.zones.box({
+                    coords = vec3(v.x, v.y, v.z),
+                    size = vec3(4.0, 5.0, 3.0),
+                    rotation = 0,
+                    debug = config.debug,
+                    onEnter = function()
+                        if isCarSpawned(k2) then
+                            lib.showTextUI(locale('menu.view_contract_int'), {position = 'right-center'})
+                        end
+                    end,
+                    onExit = function()
+                        lib.hideTextUI()
+                    end,
+                    inside = function()
+                        if IsControlJustReleased(0, 38) then
+                            TriggerEvent('qb-vehiclesales:client:OpenContract', k2)
+                        end
+                    end
+                })
+            end
+        end
+
+        local occasionBlip = AddBlipForCoord(cars.sellVehicle.x, cars.sellVehicle.y, cars.sellVehicle.z)
+        SetBlipSprite(occasionBlip, 326)
+        SetBlipDisplay(occasionBlip, 4)
+        SetBlipScale(occasionBlip, 0.75)
+        SetBlipAsShortRange(occasionBlip, true)
+        SetBlipColour(occasionBlip, 3)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentSubstringPlayerName(locale('info.used_vehicle_lot'))
+        EndTextCommandSetBlipName(occasionBlip)
+    end
+end)
+
+CreateThread(function()
+    if not config.debug then return end
+
+    while true do
+        local sleep = 1000
+        local ped = PlayerPedId()
+        local coords = GetEntityCoords(ped)
+
+        for k, v in pairs(config.zones) do
+            if #(coords - vec3(v.sellVehicle.x, v.sellVehicle.y, v.sellVehicle.z)) < 50.0 then
+                sleep = 0
+                -- Draw sell vehicle spot
+                DrawMarker(2, v.sellVehicle.x, v.sellVehicle.y, v.sellVehicle.z + 0.3, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 0.4, 0.4, 0.4, 255, 0, 0, 150, false, true, 2, false, nil, nil, false)
+            end
+        end
+
+        Wait(sleep)
+    end
+end)
+
 local historyPeds = {}
 local historyProps = {}
 local historyZones = {}
-
 local function cleanupHistoryLocations()
     for i = 1, #historyPeds do
         if DoesEntityExist(historyPeds[i]) then
@@ -817,73 +1066,76 @@ end
 
 local function setupHistoryLocations()
     cleanupHistoryLocations()
-    if not config.historyLocations then return end
+    if not config.zones then return end
 
-    for i, loc in ipairs(config.historyLocations) do
-        local label = loc.targetLabel or "Acessar Histórico e Anúncios"
-        local icon = loc.targetIcon or "fas fa-history"
-        local distance = loc.distance or 3.0
+    for zoneId, zoneData in pairs(config.zones) do
+        local loc = zoneData.historyLocation
+        if loc then
+            local label = loc.targetLabel or "Acessar Histórico e Anúncios"
+            local icon = loc.targetIcon or "fas fa-history"
+            local distance = loc.distance or 3.0
 
-        if loc.usePed then
-            local model = joaat(loc.pedModel or 's_m_m_autoshop_01')
-            lib.requestModel(model)
+            if loc.usePed then
+                local model = joaat(loc.pedModel or 's_m_m_autoshop_01')
+                lib.requestModel(model)
 
-            local coords = loc.coords
-            local ped = CreatePed(4, model, coords.x, coords.y, coords.z - 1.0, coords.w, false, false)
+                local coords = loc.coords
+                local ped = CreatePed(4, model, coords.x, coords.y, coords.z - 1.0, coords.w, false, false)
 
-            SetPedDefaultComponentVariation(ped)
-            SetEntityInvincible(ped, true)
-            SetBlockingOfNonTemporaryEvents(ped, true)
-            FreezeEntityPosition(ped, true)
-            SetModelAsNoLongerNeeded(model)
+                SetPedDefaultComponentVariation(ped)
+                SetEntityInvincible(ped, true)
+                SetBlockingOfNonTemporaryEvents(ped, true)
+                FreezeEntityPosition(ped, true)
+                SetModelAsNoLongerNeeded(model)
 
-            table.insert(historyPeds, ped)
+                table.insert(historyPeds, ped)
 
-            if loc.pedProp then
-                local propModel = joaat(loc.pedProp)
-                lib.requestModel(propModel)
+                if loc.pedProp then
+                    local propModel = joaat(loc.pedProp)
+                    lib.requestModel(propModel)
 
-                local prop = CreateObject(propModel, coords.x, coords.y, coords.z, false, false, false)
-                AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, 60309), 0.03, 0.002, -0.0, 10.0, 160.0, 0.0, true, true, false, true, 2, true)
-                SetModelAsNoLongerNeeded(propModel)
+                    local prop = CreateObject(propModel, coords.x, coords.y, coords.z, false, false, false)
+                    AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, 60309), 0.03, 0.002, -0.0, 10.0, 160.0, 0.0, true, true, false, true, 2, true)
+                    SetModelAsNoLongerNeeded(propModel)
 
-                table.insert(historyProps, prop)
-            end
+                    table.insert(historyProps, prop)
+                end
 
-            if loc.pedAnimDict and loc.pedAnimName then
-                lib.requestAnimDict(loc.pedAnimDict)
-                TaskPlayAnim(ped, loc.pedAnimDict, loc.pedAnimName, 8.0, -8.0, -1, 49, 0, false, false, false)
-                RemoveAnimDict(loc.pedAnimDict)
-            end
+                if loc.pedAnimDict and loc.pedAnimName then
+                    lib.requestAnimDict(loc.pedAnimDict)
+                    TaskPlayAnim(ped, loc.pedAnimDict, loc.pedAnimName, 8.0, -8.0, -1, 49, 0, false, false, false)
+                    RemoveAnimDict(loc.pedAnimDict)
+                end
 
-            exports.ox_target:addLocalEntity(ped, {
-                {
-                    icon = icon,
-                    label = label,
-                    onSelect = function()
-                        openHistoryTablet(true)
-                    end,
-                    distance = distance
-                }
-            })
-        else
-            local zoneId = exports.ox_target:addBoxZone({
-                coords = vec3(loc.coords.x, loc.coords.y, loc.coords.z),
-                size = loc.size or vec3(1.5, 1.5, 2.0),
-                rotation = loc.coords.w or 0.0,
-                debug = false,
-                options = {
+                exports.ox_target:addLocalEntity(ped, {
                     {
                         icon = icon,
                         label = label,
                         onSelect = function()
-                            openHistoryTablet(true)
+                            openHistoryTablet(true, zoneId)
                         end,
                         distance = distance
                     }
-                }
-            })
-            table.insert(historyZones, zoneId)
+                })
+            else
+                local targetZoneId = exports.ox_target:addBoxZone({
+                    coords = vec3(loc.coords.x, loc.coords.y, loc.coords.z),
+                    size = loc.size or vec3(1.5, 1.5, 2.0),
+                    rotation = loc.coords.w or 0.0,
+                    debug = false,
+                    options = {
+                        {
+                            icon = icon,
+                            label = label,
+                            onSelect = function()
+                                openHistoryTablet(true, zoneId)
+                            end,
+                            distance = distance
+                        }
+                    }
+                })
+                table.insert(historyZones, targetZoneId)
+            end
         end
     end
 end
@@ -913,12 +1165,15 @@ AddEventHandler('onResourceStop', function(resourceName)
         end
         deleteZones()
         cleanupHistoryLocations()
+        if config.debug and zone then
+            despawnDebugVehicles(zone)
+        end
         despawnOccasionsVehicles()
     end
 end)
 
 RegisterCommand('minhasvendas', function()
     if QBX and QBX.PlayerData and QBX.PlayerData.charinfo then
-        openHistoryTablet(true)
+        openHistoryTablet(true, zone) -- Defaulting to the current polyzone if they are inside one
     end
 end, false)
