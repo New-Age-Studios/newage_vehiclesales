@@ -14,12 +14,14 @@ shared_scripts {
 
 client_scripts {
     '@qbx_core/modules/playerdata.lua',
+    'client/mileage_bridge.lua', -- Adaptador de quilometragem (edite para trocar o sistema)
     'client/main.lua'
 }
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'config/webhook.lua',
+    'server/mileage_bridge.lua', -- Adaptador de quilometragem server-side (edite para trocar o sistema)
     'server/main.lua'
 }
 

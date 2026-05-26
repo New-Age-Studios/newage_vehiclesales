@@ -36,7 +36,8 @@ export const VehicleInfo: React.FC<VehicleInfoProps> = ({ vehicle }) => {
         </div>
       )
     },
-    { label: t('spec_mileage'), value: vehicle.mileage || '12.300 KM' },
+    // Mileage is only shown when a provider is configured (non-null from Lua)
+    ...(vehicle.mileage != null ? [{ label: t('spec_mileage'), value: vehicle.mileage }] : []),
     { label: t('spec_fuel'), value: vehicle.fuelType || vehicle.fuel || t('fuel_gasoline') },
     { label: t('spec_transmission'), value: vehicle.transmission || t('trans_auto') },
   ];

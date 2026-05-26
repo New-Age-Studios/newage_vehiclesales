@@ -19,6 +19,17 @@ return {
     -- Configurações cancelamento de venda
     showLocatorLine = true, -- Mostra uma linha vertical no veículo após o cancelamento para facilitar a localização
 
+    -- ── Quilometragem ──────────────────────────────────────────────────────
+    -- Provedor de quilometragem integrado ao contrato de compra/venda.
+    --   "jg-vehiclemileage" — usa o resource jg-vehiclemileage (requer que esteja rodando)
+    --   "custom"            — implemente em client/mileage_bridge.lua e server/mileage_bridge.lua
+    --   "none"              — desativa a exibição de quilometragem no contrato
+    mileageProvider = "jg-vehiclemileage",
+
+    -- Unidade de distância exibida no contrato ("km" ou "miles")
+    mileageUnit = "km",
+    -- ──────────────────────────────────────────────────────────────────────
+
     -- Configurações do Target
     useTarget = true, -- Ativa/desativa o target (Se true, usa ox_target. Se false, usa blips)
 

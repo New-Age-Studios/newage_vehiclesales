@@ -344,6 +344,10 @@ local function openSellContract(bool)
     local veh = cache.vehicle
     if not veh then return end
 
+    -- Fetch mileage from the mileage bridge (uses jg-vehiclemileage or custom)
+    local plate = qbx.getVehiclePlate(veh)
+    local mileage = MileageBridge.getForDisplay(plate)
+
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = 'sellVehicle',
@@ -360,7 +364,8 @@ local function openSellContract(bool)
         },
         vehicleData = {
             model = GetDisplayNameFromVehicleModel(GetEntityModel(veh)):lower(),
-            plate = qbx.getVehiclePlate(veh),
+            plate = plate,
+            mileage = mileage, -- nil when mileageProvider = "none"
             fuel = math.floor(GetVehicleFuelLevel(veh)),
             engine = math.floor(GetVehicleEngineHealth(veh) / 10),
             body = math.floor(GetVehicleBodyHealth(veh) / 10),
@@ -370,6 +375,38 @@ local function openSellContract(bool)
 end
 
 local function openBuyContract(sellerData, vehicleData)
+    -- Try to get mileage for the display vehicle.
+    -- Priority 1: statebag of the local display entity (no server round-trip)
+    -- Priority 2: server-side lookup via mileage_bridge callback
+    local mileage = nil
+    if config.mileageProvider and config.mileageProvider ~= "none" then
+        -- Try statebag first using the local display entity
+        local displayVeh = nil
+        if zone and occasionVehicles[zone] then
+            for _, data in pairs(occasionVehicles[zone]) do
+                if data and data.plate == vehicleData.plate then
+                    displayVeh = data.car
+                    break
+                end
+            end
+        end
+
+        if displayVeh and DoesEntityExist(displayVeh) then
+            local stateMileage = Entity(displayVeh).state.vehicleMileage
+            if stateMileage then
+                mileage = MileageBridge.formatMileage(tonumber(stateMileage))
+            end
+        end
+
+        -- Fallback: server-side callback (reads from DB)
+        if not mileage then
+            local rawKm = lib.callback.await('newage_vehiclesales:server:getMileage', false, vehicleData.plate)
+            if rawKm then
+                mileage = MileageBridge.formatMileage(tonumber(rawKm))
+            end
+        end
+    end
+
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = 'buyVehicle',
@@ -391,6 +428,7 @@ local function openBuyContract(sellerData, vehicleData)
         vehicleData = {
             desc = vehicleData.desc,
             price = vehicleData.price,
+            mileage = mileage, -- nil when mileageProvider = "none"
             fuelType = vehicleData.fuelType,
             colorRGB = vehicleData.colorRGB,
             isExotic = vehicleData.isExotic == 1 or vehicleData.isExotic == true,
