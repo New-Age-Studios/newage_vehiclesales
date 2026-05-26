@@ -178,6 +178,15 @@
         "contract_authenticity_desc": "Este documento possui validade jurídica interna. A falsificação de assinatura ou dados é crime previsto no código penal.",
         "contract_photo_unavailable": "Imagem Indisponível",
         "contract_photo_fig": "Fig. I - Registro do Veículo",
-        "sale_desc_label": "Observações Adicionais"
+        "sale_desc_label": "Observações Adicionais",
+        "contract_confirm_title": "CONFIRMAÇÃO DE ASSINATURA",
+        "contract_confirm_desc": "Você está prestes a assinar o contrato de compra e venda. Por favor, confirme os detalhes da transação:",
+        "contract_confirm_veh": "Veículo",
+        "contract_confirm_plate": "Placa",
+        "contract_confirm_price": "Preço Total",
+        "contract_confirm_seller": "Vendedor",
+        "contract_confirm_buyer": "Comprador",
+        "contract_confirm_finalize": "Assinar e Finalizar",
+        "contract_confirm_back": "Voltar ao Contrato"
     }
 }

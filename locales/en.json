@@ -178,6 +178,15 @@
         "contract_authenticity_desc": "This document has internal legal validity. Forgery of signatures or data is a crime under the penal code.",
         "contract_photo_unavailable": "Image Unavailable",
         "contract_photo_fig": "Fig. I - Vehicle Record",
-        "sale_desc_label": "Additional Notes"
+        "sale_desc_label": "Additional Notes",
+        "contract_confirm_title": "SIGNATURE CONFIRMATION",
+        "contract_confirm_desc": "You are about to sign this purchase and sale contract. Please confirm the transaction details:",
+        "contract_confirm_veh": "Vehicle",
+        "contract_confirm_plate": "Plate",
+        "contract_confirm_price": "Total Price",
+        "contract_confirm_seller": "Seller",
+        "contract_confirm_buyer": "Buyer",
+        "contract_confirm_finalize": "Sign and Finalize",
+        "contract_confirm_back": "Back to Contract"
     }
 }

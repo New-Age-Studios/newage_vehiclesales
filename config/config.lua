@@ -1,24 +1,30 @@
 return {
-    useTarget = true,
+    -- Configuração geral
     debug = false, -- Ativa o modo de debug (mostra polyzones, vagas de veículos e local de venda)
+
+    -- API FiveManage
+    FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
+    FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
+
+    -- Idioma do script ('pt-br' ou 'en')
+    language = 'en', -- Idioma do script ('pt-br' ou 'en')
+
+    -- Configurações da Venda
     enableSellBack = true, -- Ativa/desativa a opção de vender veículo de volta para a concessionária
     sellBackPercentage = 50, -- Porcentagem do valor do veículo pago de volta (Ex: 50 para 50% do valor padrão)
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
-    language = "en", -- Idioma do sistema e da UI (Ex: "pt-br", "en")
-    
     currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
     currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")
-    
-    FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
-    FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
-    
-    -- O Histórico de Vendas agora é configurado dentro de cada zone no array `zones`.
 
+    -- Configurações do Target
+    useTarget = true, -- Ativa/desativa o target (Se true, usa ox_target. Se false, usa blips)
+
+    -- Configurações das Zonas
     zones = {
-        sandyOccasions = {
-            businessName = "Concessionária de Usados",
-            sellVehicle = vec4(1235.61, 2733.44, 37.4, 0.42),
-            buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5),
+        senoracss = { -- Nome da zona
+            businessName = "Concessionária de Usados", -- Nome da empresa
+            sellVehicle = vec4(1235.61, 2733.44, 37.4, 0.42), -- Coordenadas da zona de venda (x, y, z, heading)
+            buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5), -- Coordenadas da zona de compra (x, y, z, heading)
             pedModel = 's_m_m_autoshop_01', -- Modelo do NPC vendedor
             pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Dicionário de animação
             pedAnimName = 'base', -- Nome da animação

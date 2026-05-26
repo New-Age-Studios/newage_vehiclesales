@@ -9,6 +9,8 @@ import { PriceBox } from './PriceBox';
 import { TermsBox } from './TermsBox';
 import { SignatureArea } from './SignatureArea';
 import { ContractFooter } from './ContractFooter';
+import { useCurrency } from '../../context/CurrencyContext';
+import { Button } from '../ui/button';
 
 interface VehicleContractProps {
   data: ContractData;
@@ -20,14 +22,19 @@ interface VehicleContractProps {
 export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfirm, onCancel, readOnly = false }) => {
   const [isSigned, setIsSigned] = useState(readOnly);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const { t } = useLocale();
+  const { formatPrice } = useCurrency();
 
   const handleSign = () => {
     if (readOnly || isProcessing || isSigned) return;
-    
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSignature = () => {
+    setShowConfirmModal(false);
     setIsSigned(true);
     setIsProcessing(true);
-
     
     // Simulate signing time before confirming
     setTimeout(() => {
@@ -71,6 +78,75 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
           />
           <ContractFooter />
         </div>
+
+        {/* Paper-styled Confirmation Overlay */}
+        {showConfirmModal && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-8 transition-all duration-300">
+            {/* Modal Box in Paper style */}
+            <div className="relative w-full max-w-md bg-paper paper-texture border-2 border-double border-zinc-400 p-6 shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              {/* Grain overlay for modal paper */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
+              
+              <h3 className="font-serif text-lg font-bold text-zinc-800 tracking-wide uppercase border-b border-zinc-300 pb-2 w-full mb-4">
+                {t('contract_confirm_title')}
+              </h3>
+              
+              <p className="text-xs text-zinc-600 mb-6 leading-relaxed font-medium">
+                {t('contract_confirm_desc')}
+              </p>
+              
+              {/* Transaction details box */}
+              <div className="w-full bg-zinc-100/40 border border-zinc-300/60 rounded p-4 mb-6 space-y-2 text-left font-sans text-xs">
+                <div className="flex justify-between border-b border-zinc-200/50 pb-1.5">
+                  <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_confirm_veh')}</span>
+                  <span className="font-semibold text-zinc-800">{data.vehicle.model}</span>
+                </div>
+                <div className="flex justify-between border-b border-zinc-200/50 pb-1.5">
+                  <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_confirm_plate')}</span>
+                  <span className="font-mono font-semibold text-zinc-800 uppercase">{data.vehicle.plate}</span>
+                </div>
+                <div className="flex justify-between border-b border-zinc-200/50 pb-1.5">
+                  <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_confirm_seller')}</span>
+                  <span className="font-semibold text-zinc-800">
+                    {data.seller.firstname} {data.seller.lastname}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-zinc-200/50 pb-1.5">
+                  <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_confirm_buyer')}</span>
+                  <span className="font-semibold text-zinc-800">
+                    {data.buyer ? `${data.buyer.firstname} ${data.buyer.lastname}` : t('contract_authorized_buyer')}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1.5">
+                  <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_confirm_price')}</span>
+                  <span className="font-bold text-concessionaire text-sm">
+                    {formatPrice(data.vehicle.price)}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Action buttons using Custom UI buttons */}
+              <div className="flex gap-4 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 border-zinc-400 hover:bg-zinc-100 text-zinc-700 font-bold uppercase tracking-wider text-[10px]"
+                >
+                  {t('contract_confirm_back')}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConfirmSignature}
+                  className="flex-1 bg-concessionaire hover:bg-concessionaire-dark text-white font-bold uppercase tracking-wider text-[10px]"
+                >
+                  {t('contract_confirm_finalize')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Exit Hint */}
