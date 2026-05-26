@@ -44,7 +44,11 @@ local function despawnDebugVehicles(zoneName)
 end
 
 local function DeleteGhostVehicle(plate, immediate)
-    if not zone or not occasionVehicles[zone] then return end
+    print("^2[newage_vehiclesales]^7 DeleteGhostVehicle called for plate:", plate)
+    if not zone or not occasionVehicles[zone] then 
+        print("^3[newage_vehiclesales]^7 DeleteGhostVehicle cancelled: zone or occasionVehicles[zone] is nil")
+        return 
+    end
     
     local veh = nil
     local slot = nil
@@ -56,7 +60,16 @@ local function DeleteGhostVehicle(plate, immediate)
         end
     end
     
-    if not veh or not DoesEntityExist(veh) then return end
+    if not veh then
+        print("^3[newage_vehiclesales]^7 DeleteGhostVehicle: no vehicle entity stored for plate:", plate)
+        return
+    end
+
+    if not DoesEntityExist(veh) then
+        print("^3[newage_vehiclesales]^7 DeleteGhostVehicle: stored vehicle entity does not exist for plate:", plate)
+        occasionVehicles[zone][slot] = nil
+        return
+    end
     
     if occasionVehicles[zone][slot].hasTarget then
         exports.ox_target:removeLocalEntity(veh, locale('menu.view_contract'))
@@ -65,6 +78,7 @@ local function DeleteGhostVehicle(plate, immediate)
     
     occasionVehicles[zone][slot] = nil
     
+    print("^2[newage_vehiclesales]^7 DeleteGhostVehicle: deleting local entity:", veh)
     SetEntityAsMissionEntity(veh, true, true)
     DeleteVehicle(veh)
     DeleteEntity(veh)
@@ -83,7 +97,11 @@ local function teardownDisplayVehicles()
 end
 
 local function setupDisplayVehicles(vDataList)
-    if not zone then return end
+    print("^2[newage_vehiclesales]^7 setupDisplayVehicles called. List size:", vDataList and #vDataList or 0)
+    if not zone then 
+        print("^3[newage_vehiclesales]^7 setupDisplayVehicles: not inside a zone, skipping.")
+        return 
+    end
     if not occasionVehicles[zone] then occasionVehicles[zone] = {} end
     if not vDataList then return end
 
@@ -92,6 +110,7 @@ local function setupDisplayVehicles(vDataList)
     for slot, data in pairs(occasionVehicles[currentZone]) do
         if data.plate and data.car then
             currentPlates[data.plate] = true
+            print("^2[newage_vehiclesales]^7 Existing plate in slot:", slot, "plate:", data.plate, "entity:", data.car)
         end
     end
 
@@ -99,6 +118,7 @@ local function setupDisplayVehicles(vDataList)
         local v = vDataList[i]
         if v.zone == currentZone then
             local plate = v.plate
+            print("^2[newage_vehiclesales]^7 Processing vehicle in list index:", i, "plate:", plate, "slotIndex:", v.slotIndex)
             
             if not occasionVehicles[currentZone][v.slotIndex] then
                 occasionVehicles[currentZone][v.slotIndex] = {}
@@ -122,16 +142,20 @@ local function setupDisplayVehicles(vDataList)
             currentPlates[plate] = false
             
             if not slotData.car or not DoesEntityExist(slotData.car) then
+                print("^2[newage_vehiclesales]^7 SlotData.car does not exist or is nil for slot:", v.slotIndex)
                 if not slotData.isSpawning then
+                    print("^2[newage_vehiclesales]^7 isSpawning is false, initiating thread to load model:", v.model)
                     slotData.isSpawning = true
                     CreateThread(function()
                         local model = joaat(v.model)
                         if lib.requestModel(model, 5000) then
+                            print("^2[newage_vehiclesales]^7 Model loaded successfully:", v.model)
                             -- Confirm we are still in the same zone and slot wasn't cleared
                             if zone == currentZone and occasionVehicles[currentZone] and occasionVehicles[currentZone][v.slotIndex] == slotData then
                                 if not slotData.car or not DoesEntityExist(slotData.car) then
                                     local coords = v.loc
                                     local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
+                                    print("^2[newage_vehiclesales]^7 CreateVehicle returned entity:", veh)
                                     SetVehicleNumberPlateText(veh, plate)
                                     
                                     if v.mods then
@@ -173,23 +197,31 @@ local function setupDisplayVehicles(vDataList)
                                         slotData.hasTarget = true
                                     end
                                 else
+                                    print("^3[newage_vehiclesales]^7 SlotData.car already spawned after yield, skipping.")
                                     SetModelAsNoLongerNeeded(model)
                                 end
                             else
+                                print("^3[newage_vehiclesales]^7 Zone changed or slotData mismatch after yield, cancelling spawn.")
                                 SetModelAsNoLongerNeeded(model)
                             end
                         else
+                            print("^3[newage_vehiclesales]^7 Failed to load model:", v.model)
                             SetModelAsNoLongerNeeded(model)
                         end
                         slotData.isSpawning = false
                     end)
+                else
+                    print("^2[newage_vehiclesales]^7 isSpawning is already true, skipping thread spawn.")
                 end
+            else
+                print("^2[newage_vehiclesales]^7 SlotData.car already exists:", slotData.car, "for slot:", v.slotIndex)
             end
         end
     end
     
     for slot, data in pairs(occasionVehicles[currentZone] or {}) do
         if data.plate and currentPlates[data.plate] == true then
+            print("^2[newage_vehiclesales]^7 Cleaning up obsolete vehicle:", data.plate, "in slot:", slot)
             DeleteGhostVehicle(data.plate)
             occasionVehicles[currentZone][slot] = nil
         end
