@@ -22,7 +22,8 @@
     "success": {
         "sold_car_for_price": "Você vendeu seu carro por %s%s",
         "car_up_for_sale": "Seu carro foi colocado à venda! Preço - %s%s",
-        "vehicle_bought": "Veículo Comprado"
+        "vehicle_bought": "Veículo Comprado",
+        "vehicle_returned": "Veículo devolvido! Localize-o na concessionária."
     },
     "charinfo": {
         "firstname": "Desconhecido",

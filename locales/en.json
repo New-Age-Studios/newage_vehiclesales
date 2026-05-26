@@ -22,7 +22,8 @@
     "success": {
         "sold_car_for_price": "You sold your car for %s%s",
         "car_up_for_sale": "Your car is now for sale! Price - %s%s",
-        "vehicle_bought": "Vehicle Purchased"
+        "vehicle_bought": "Vehicle Purchased",
+        "vehicle_returned": "Vehicle returned! Locate it at the dealership."
     },
     "charinfo": {
         "firstname": "Unknown",

@@ -13,6 +13,12 @@ local pendingSellData = nil
 local targetSellSpot = nil
 local sellSpotBlip = nil
 
+-- Mutex: true while a buy/return vehicle spawn is in progress.
+-- Prevents refreshVehicles from running a conflicting despawn+spawn cycle.
+local isProcessingVehicleAction = false
+-- Mutex: prevents concurrent refreshVehicles executions.
+local isRefreshingVehicles = false
+
 local function spawnDebugVehicles(zoneName)
     if not config.debug then return end
     local cfg = config.zones[zoneName]
@@ -46,21 +52,20 @@ end
 
 local function DeleteDisplayVehicle(veh)
     if not veh or not DoesEntityExist(veh) then return end
-    
+
+    -- SetEntityAsMissionEntity prevents the GTA streaming bug where nearby map models
+    -- disappear when a local entity is deleted.
     SetEntityAsMissionEntity(veh, true, true)
     SetEntityAsNoLongerNeeded(veh)
-    
-    CreateThread(function()
-        for i = 1, 5 do
-            if DoesEntityExist(veh) then
-                DeleteVehicle(veh)
-                DeleteEntity(veh)
-            else
-                break
-            end
-            Wait(50)
-        end
-    end)
+
+    -- SYNCHRONOUS retry loop — all callers are inside a coroutine/thread so Wait() is safe.
+    -- Keeping this synchronous is critical: async deletion (CreateThread) causes race conditions
+    -- where refreshVehicles spawns a new display entity on top of the still-existing vehicle.
+    for _ = 1, 10 do
+        if not DoesEntityExist(veh) then break end
+        DeleteVehicle(veh)
+        Wait(50)
+    end
 end
 
 local function spawnOccasionsVehicles(vehicles)
@@ -95,12 +100,13 @@ local function spawnOccasionsVehicles(vehicles)
                         lib.setVehicleProperties(occasionVehicles[zone][count].car, json.decode(vehicles[i].mods))
 
                         SetModelAsNoLongerNeeded(model)
-                        SetVehicleOnGroundProperly(occasionVehicles[zone][count].car)
-                        SetEntityInvincible(occasionVehicles[zone][count].car,true)
+                        -- Apply heading BEFORE grounding so the vehicle settles in the correct orientation
                         SetEntityHeading(occasionVehicles[zone][count].car, oSlot[count].w)
+                        SetVehicleOnGroundProperly(occasionVehicles[zone][count].car)
+                        SetEntityInvincible(occasionVehicles[zone][count].car, true)
                         SetVehicleDoorsLocked(occasionVehicles[zone][count].car, 3)
                         SetVehicleNumberPlateText(occasionVehicles[zone][count].car, occasionVehicles[zone][count].plate)
-                        FreezeEntityPosition(occasionVehicles[zone][count].car,true)
+                        FreezeEntityPosition(occasionVehicles[zone][count].car, true)
                         if config.useTarget then
                             if not entityZones then entityZones = {} end
                             entityZones[count] = exports.ox_target:addLocalEntity(occasionVehicles[zone][count].car, {
@@ -124,19 +130,30 @@ end
 local function despawnOccasionsVehicles()
     if not zone then return end
     local oSlot = config.zones[zone].vehicleSpots
-    for i = 1, #oSlot, 1 do
-        local loc = oSlot[i]
-        local oldVehicle = GetClosestVehicle(loc.x, loc.y, loc.z, 1.3, 0, 70)
-        if oldVehicle and not NetworkGetEntityIsNetworked(oldVehicle) then
-            DeleteDisplayVehicle(oldVehicle)
-        end
 
-        if occasionVehicles[zone] and occasionVehicles[zone][i] and occasionVehicles[zone][i].car then
-            if entityZones[i] and config.useTarget then
-                exports.ox_target:removeLocalEntity(occasionVehicles[zone][i].car, locale('menu.view_contract'))
+    -- First clean up tracked display vehicles and their target zones
+    if occasionVehicles[zone] then
+        for i, data in ipairs(occasionVehicles[zone]) do
+            if data and data.car then
+                if entityZones[i] and config.useTarget then
+                    exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
+                    entityZones[i] = nil
+                end
+                DeleteDisplayVehicle(data.car)
             end
         end
+        occasionVehicles[zone] = nil
     end
+
+    -- Fallback: also check proximity for any stray local vehicles at display spots
+    for i = 1, #oSlot do
+        local loc = oSlot[i]
+        local strayVeh = GetClosestVehicle(loc.x, loc.y, loc.z, 1.5, 0, 70)
+        if strayVeh and strayVeh ~= 0 and not NetworkGetEntityIsNetworked(strayVeh) then
+            DeleteDisplayVehicle(strayVeh)
+        end
+    end
+
     table.wipe(entityZones)
 end
 
@@ -145,12 +162,16 @@ local function deleteDisplayVehicleByPlate(plate)
     for i = 1, #occasionVehicles[zone] do
         local data = occasionVehicles[zone][i]
         if data and data.plate == plate then
-            if DoesEntityExist(data.car) then
-                DeleteDisplayVehicle(data.car)
-            end
+            -- Remove target zone first
             if entityZones[i] and config.useTarget then
                 exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
                 entityZones[i] = nil
+            end
+            -- Nil the table entry BEFORE deleting so despawnOccasionsVehicles (called by
+            -- refreshVehicles) cannot try to delete the same entity a second time.
+            occasionVehicles[zone][i] = nil
+            if DoesEntityExist(data.car) then
+                DeleteDisplayVehicle(data.car) -- synchronous — returns only after deletion
             end
             break
         end
@@ -364,7 +385,7 @@ end
 local function completeVehicleSale()
     local price = pendingSellData.price
     local vehicleData = pendingSellData.vehicleData
-    
+
     isPositioningVehicle = false
     pendingSellData = nil
     targetSellSpot = nil
@@ -373,22 +394,28 @@ local function completeVehicleSale()
         sellSpotBlip = nil
     end
     lib.hideTextUI()
-    
+
     PlaySound(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false, 0, true)
-    
-    DoScreenFadeOut(250)
-    Wait(250)
-    
+
+    -- Block refreshVehicles from running while we delete the driven vehicle.
+    -- Without this, refreshVehicles can arrive (triggered by the server event below)
+    -- and spawn a display entity on top of the vehicle before it finishes deleting.
+    isProcessingVehicleAction = true
+
     local veh = cache.vehicle
     if veh and veh ~= 0 then
-        DeleteVehicle(veh)
+        -- DeleteDisplayVehicle is synchronous: this line blocks until the vehicle is
+        -- actually gone from the world before we continue.
+        DeleteDisplayVehicle(veh)
     end
-    
+
+    isProcessingVehicleAction = false
+
+    -- Only trigger the server event AFTER the vehicle is confirmed deleted.
+    -- This way, when the server broadcasts refreshVehicles, there is no stray
+    -- entity left at the spot for the new display vehicle to overlap with.
     TriggerServerEvent('qb-occasions:server:sellVehicle', price, vehicleData)
-    
-    Wait(1000)
-    DoScreenFadeIn(250)
-    
+
     exports.qbx_core:Notify((locale('success.car_up_for_sale'):format(config.currencySymbol or "R$", price)), 'success')
 end
 
@@ -632,14 +659,8 @@ local function deleteZones()
 end
 
 local function isCarSpawned(Car)
-    if occasionVehicles and next(occasionVehicles) then
-        for k in pairs(occasionVehicles[zone]) do
-            if k == Car then
-                return true
-            end
-        end
-    end
-    return false
+    if not zone or not occasionVehicles or not occasionVehicles[zone] then return false end
+    return occasionVehicles[zone][Car] ~= nil
 end
 
 RegisterNUICallback('sellVehicle', function(data, cb)
@@ -871,53 +892,95 @@ RegisterNUICallback('buyVehicle', function(_, cb)
 end)
 
 RegisterNUICallback('takeVehicleBack', function(_, cb)
-    TriggerServerEvent('qb-occasions:server:ReturnVehicle', currentVehicle)
+    -- Pass loc so the server can relay the spawn position back to this client
+    local data = currentVehicle
+    if zone and occasionVehicles[zone] then
+        for i = 1, #occasionVehicles[zone] do
+            local oVeh = occasionVehicles[zone][i]
+            if oVeh and oVeh.plate == currentVehicle.plate then
+                data = table.clone and table.clone(currentVehicle) or {}
+                for k, v in pairs(currentVehicle) do data[k] = v end
+                data.loc = oVeh.loc
+                break
+            end
+        end
+    end
+    TriggerServerEvent('qb-occasions:server:ReturnVehicle', data)
     cb('ok')
 end)
 
-RegisterNetEvent('qb-occasions:client:BuyFinished', function(vehData, spawnCoords)
-    -- Delete local display vehicle immediately
+-- Shared helper: spawn a networked vehicle at the display slot coords after purchase or return.
+-- Guarded by isProcessingVehicleAction so that refreshVehicles (broadcast to all clients
+-- by the server) waits until the spawn is fully complete before trying to despawn/respawn
+-- display entities — preventing the duplication visible to multiple nearby players.
+local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
+    isProcessingVehicleAction = true
+
+    -- Synchronously remove the local display entity for this plate.
+    -- The entry is nil'd in occasionVehicles before deletion, so the subsequent
+    -- refreshVehicles despawn loop won't try to double-delete the same handle.
     deleteDisplayVehicleByPlate(vehData.plate)
-    Wait(300)
-    
+
     local targetZone = vehData.zone or zone
     local coords = spawnCoords
     if not coords then
         coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
     end
-    
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true) -- warp = true
+
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true)
+    if not netId then
+        isProcessingVehicleAction = false
+        exports.qbx_core:Notify("Erro ao spawnar veículo. Contacte um administrador.", 'error', 4000)
+        return
+    end
+
+    -- Wait for the entity to replicate to this client (max 1 s)
     local timeout = 100
     while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
         Wait(10)
         timeout -= 1
     end
+
     local veh = NetToVeh(netId)
-    
+    if not veh or veh == 0 then
+        isProcessingVehicleAction = false
+        exports.qbx_core:Notify("Veículo não encontrado após spawn.", 'error', 4000)
+        return
+    end
+
+    -- Place and align the vehicle at the exact slot position
     FreezeEntityPosition(veh, true)
     SetEntityCoords(veh, coords.x, coords.y, coords.z + 0.5, false, false, false, false)
     SetEntityHeading(veh, coords.w)
     SetVehicleFuelLevel(veh, 100)
-    
+
+    -- Wait for surrounding collision to load before grounding (avoids falling through floor)
     local collisionTimeout = 3000
     while not HasCollisionLoadedAroundEntity(veh) and collisionTimeout > 0 do
         Wait(100)
         collisionTimeout -= 100
     end
-    
+
     SetVehicleOnGroundProperly(veh)
     Wait(50)
     SetVehicleOnGroundProperly(veh)
-    
+
     SetVehicleFixed(veh)
     SetVehicleUndriveable(veh, false)
     SetVehicleDoorsLocked(veh, 1) -- unlocked
     FreezeEntityPosition(veh, false)
-    
     Wait(0)
     SetVehicleHandbrake(veh, false)
-    
-    exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
+
+    -- Release the mutex BEFORE notifying so refreshVehicles can proceed
+    isProcessingVehicleAction = false
+
+    exports.qbx_core:Notify(locale(notifyKey or 'success.vehicle_bought'), 'success', 2500)
+    return veh
+end
+
+RegisterNetEvent('qb-occasions:client:BuyFinished', function(vehData, spawnCoords)
+    local veh = spawnNetworkedVehicleAtSlot(vehData, spawnCoords, 'success.vehicle_bought')
     currentVehicle = {}
 end)
 
@@ -930,7 +993,8 @@ AddEventHandler('qb-occasions:client:SellBackCar', function()
         if owned then
             if not balance or balance < 1 then
                 TriggerServerEvent('qb-occasions:server:sellVehicleBack', vehicleData)
-                DeleteVehicle(cache.vehicle)
+                -- Use safe deletion to avoid streaming/prop-disappearance bug
+                DeleteDisplayVehicle(cache.vehicle)
             else
                 exports.qbx_core:Notify(locale('error.finish_payments'), 'error', 3500)
             end
@@ -943,75 +1007,39 @@ AddEventHandler('qb-occasions:client:SellBackCar', function()
 end)
 
 RegisterNetEvent('qb-occasions:client:ReturnOwnedVehicle', function(vehData, spawnCoords)
-    -- Delete local display vehicle immediately
-    deleteDisplayVehicleByPlate(vehData.plate)
-    Wait(300)
-    
-    local targetZone = vehData.zone or zone
-    local coords = spawnCoords
-    if not coords then
-        coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
+    local veh = spawnNetworkedVehicleAtSlot(vehData, spawnCoords, 'success.vehicle_returned')
+    if not veh then
+        currentVehicle = {}
+        return
     end
-    
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true) -- warp = true
-    local timeout = 100
-    while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
-        Wait(10)
-        timeout -= 1
-    end
-    local veh = NetToVeh(netId)
-    
-    FreezeEntityPosition(veh, true)
-    SetEntityCoords(veh, coords.x, coords.y, coords.z + 0.5, false, false, false, false)
-    SetEntityHeading(veh, coords.w)
-    SetVehicleFuelLevel(veh, 100)
-    
-    local collisionTimeout = 3000
-    while not HasCollisionLoadedAroundEntity(veh) and collisionTimeout > 0 do
-        Wait(100)
-        collisionTimeout -= 100
-    end
-    
-    SetVehicleOnGroundProperly(veh)
-    Wait(50)
-    SetVehicleOnGroundProperly(veh)
-    
-    SetVehicleFixed(veh)
-    SetVehicleUndriveable(veh, false)
-    SetVehicleDoorsLocked(veh, 1) -- unlocked
-    FreezeEntityPosition(veh, false)
-    
-    Wait(0)
-    SetVehicleHandbrake(veh, false)
-    
-    exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
-    
+
+    -- Optional locator: 3D outline + overhead chevron arrow so the player can find the car easily
     if config.showLocatorLine then
         CreateThread(function()
-            local timeout = 15000 -- 15 segundos
-            
+            local lineTimeout = 15000 -- 15 segundos
+
             if DoesEntityExist(veh) then
-                SetEntityDrawOutlineColor(46, 204, 113, 200) -- Green outline
+                SetEntityDrawOutlineColor(46, 204, 113, 200)
                 SetEntityDrawOutlineShader(1)
                 SetEntityDrawOutline(veh, true)
             end
-            
-            while timeout > 0 and DoesEntityExist(veh) do
+
+            while lineTimeout > 0 and DoesEntityExist(veh) do
                 Wait(0)
-                timeout = timeout - (GetFrameTime() * 1000)
-                
-                if cache.vehicle == veh then
-                    break
-                end
-                
+                lineTimeout = lineTimeout - (GetFrameTime() * 1000)
+
+                -- Stop drawing once the player enters the vehicle
+                if cache.vehicle == veh then break end
+
                 local vCoords = GetEntityCoords(veh)
-                DrawMarker(0, vCoords.x, vCoords.y, vCoords.z + 2.0, 
-                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-                           0.5, 0.5, 0.5, 
-                           46, 204, 113, 180, 
+                -- Downward chevron arrow hovering above the car roof
+                DrawMarker(0, vCoords.x, vCoords.y, vCoords.z + 2.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                           0.5, 0.5, 0.5,
+                           46, 204, 113, 180,
                            true, true, 2, false, nil, nil, false)
             end
-            
+
             if DoesEntityExist(veh) then
                 SetEntityDrawOutline(veh, false)
             end
@@ -1022,11 +1050,28 @@ RegisterNetEvent('qb-occasions:client:ReturnOwnedVehicle', function(vehData, spa
 end)
 
 RegisterNetEvent('qb-occasion:client:refreshVehicles', function()
-    if zone then
-        local vehicles = lib.callback.await('qb-occasions:server:getVehicles')
-        despawnOccasionsVehicles()
-        spawnOccasionsVehicles(vehicles)
+    if not zone then return end
+
+    -- If another refresh is already running, skip this one to avoid double-spawning
+    -- (the ongoing refresh will fetch the latest DB state anyway).
+    if isRefreshingVehicles then return end
+    isRefreshingVehicles = true
+
+    -- If this client is mid-spawn (buy / return flow), wait for it to finish first.
+    -- This prevents refreshVehicles from despawning the display entities WHILE
+    -- spawnNetworkedVehicleAtSlot is between deleteDisplayVehicleByPlate and spawn,
+    -- which is the main cause of ghost duplicates visible to multiple nearby players.
+    local waited = 0
+    while isProcessingVehicleAction and waited < 5000 do
+        Wait(100)
+        waited = waited + 100
     end
+
+    local vehicles = lib.callback.await('qb-occasions:server:getVehicles')
+    despawnOccasionsVehicles()
+    spawnOccasionsVehicles(vehicles)
+
+    isRefreshingVehicles = false
 end)
 
 AddEventHandler('qb-vehiclesales:client:SellVehicle', function()
