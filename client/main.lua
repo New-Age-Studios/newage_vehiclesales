@@ -43,25 +43,58 @@ local function despawnDebugVehicles(zoneName)
     debugVehicles[zoneName] = nil
 end
 
-local function safeDeleteVehicle(veh)
-    if not veh or not DoesEntityExist(veh) then return end
-    SetEntityAsMissionEntity(veh, true, true)
-    SetEntityAsNoLongerNeeded(veh)
-    for _ = 1, 10 do
-        if not DoesEntityExist(veh) then break end
-        DeleteVehicle(veh)
-        Wait(50)
+local function DeleteGhostVehicle(plate)
+    if not zone or not occasionVehicles[zone] then return end
+    
+    local veh = nil
+    local slot = nil
+    for s, data in pairs(occasionVehicles[zone]) do
+        if data.plate == plate then
+            veh = data.car
+            slot = s
+            break
+        end
     end
+    
+    if not veh or not DoesEntityExist(veh) then return end
+    
+    if occasionVehicles[zone][slot].hasTarget then
+        exports.ox_target:removeLocalEntity(veh, locale('menu.view_contract'))
+        occasionVehicles[zone][slot].hasTarget = false
+    end
+    
+    occasionVehicles[zone][slot].car = nil
+    
+    CreateThread(function()
+        for alpha = 255, 0, -15 do
+            if DoesEntityExist(veh) then
+                SetEntityAlpha(veh, math.max(alpha, 0), false)
+                Wait(20)
+            else
+                break
+            end
+        end
+
+        for i = 1, 5 do
+            if DoesEntityExist(veh) then
+                SetEntityAsMissionEntity(veh, true, true)
+                SetEntityAsNoLongerNeeded(veh)
+                DeleteVehicle(veh)
+                DeleteEntity(veh)
+            else
+                break
+            end
+            Wait(50)
+        end
+    end)
 end
 
 local function teardownDisplayVehicles()
     if not zone then return end
     if occasionVehicles[zone] then
-        for _, data in pairs(occasionVehicles[zone]) do
-            if data and data.car and data.hasTarget and config.useTarget then
-                if DoesEntityExist(data.car) then
-                    exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
-                end
+        for slot, data in pairs(occasionVehicles[zone]) do
+            if data.plate then
+                DeleteGhostVehicle(data.plate)
             end
         end
         occasionVehicles[zone] = nil
@@ -70,63 +103,104 @@ end
 
 local function setupDisplayVehicles(vDataList)
     if not zone then return end
-    occasionVehicles[zone] = {}
+    if not occasionVehicles[zone] then occasionVehicles[zone] = {} end
     if not vDataList then return end
+
+    local currentPlates = {}
+    for slot, data in pairs(occasionVehicles[zone]) do
+        if data.plate and data.car then
+            currentPlates[data.plate] = true
+        end
+    end
 
     for i = 1, #vDataList do
         local v = vDataList[i]
         if v.zone == zone then
-            local veh = 0
-            if v.netId then
-                -- Wait for entity to exist locally (streaming)
-                local timeout = 100
-                while not NetworkDoesEntityExistWithNetworkId(v.netId) and timeout > 0 do
-                    Wait(10)
-                    timeout = timeout - 1
-                end
-                veh = NetToVeh(v.netId)
+            local plate = v.plate
+            
+            if not occasionVehicles[zone][v.slotIndex] then
+                occasionVehicles[zone][v.slotIndex] = {}
             end
             
-            occasionVehicles[zone][v.slotIndex] = {
-                car       = veh,
-                loc       = v.loc,
-                price     = v.price,
-                owner     = v.owner,
-                model     = v.model,
-                plate     = v.plate,
-                oid       = v.oid,
-                desc      = v.desc,
-                mods      = v.mods,
-                fuelType  = v.fuelType,
-                colorRGB  = v.colorRGB,
-                isExotic  = v.isExotic,
-                transmission = v.transmission,
-                photo_url = v.photo_url,
-                hasTarget = false,
-                netId     = v.netId
-            }
-
-            if veh and veh ~= 0 and config.useTarget then
-                exports.ox_target:addLocalEntity(veh, {
-                    {
-                        icon = 'fas fa-car',
-                        label = locale('menu.view_contract'),
-                        onSelect = function()
-                            TriggerEvent('qb-vehiclesales:client:OpenContract', v.slotIndex)
-                        end,
-                        distance = 2.0
-                    }
-                })
-                occasionVehicles[zone][v.slotIndex].hasTarget = true
+            local slotData = occasionVehicles[zone][v.slotIndex]
+            slotData.loc       = v.loc
+            slotData.price     = v.price
+            slotData.owner     = v.owner
+            slotData.model     = v.model
+            slotData.plate     = v.plate
+            slotData.oid       = v.oid
+            slotData.desc      = v.desc
+            slotData.mods      = v.mods
+            slotData.fuelType  = v.fuelType
+            slotData.colorRGB  = v.colorRGB
+            slotData.isExotic  = v.isExotic
+            slotData.transmission = v.transmission
+            slotData.photo_url = v.photo_url
+            
+            currentPlates[plate] = false
+            
+            if not slotData.car or not DoesEntityExist(slotData.car) then
+                local model = joaat(v.model)
+                if lib.requestModel(model, 5000) then
+                    local coords = v.loc
+                    local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
+                    SetVehicleNumberPlateText(veh, plate)
+                    
+                    if v.mods then
+                        local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
+                        lib.setVehicleProperties(veh, modTable)
+                    end
+                    
+                    SetEntityInvincible(veh, true)
+                    SetVehicleFixed(veh)
+                    SetVehicleDoorsLocked(veh, 2)
+                    FreezeEntityPosition(veh, true)
+                    SetVehicleEngineOn(veh, false, true, true)
+                    SetEntityCollision(veh, true, true)
+                    SetModelAsNoLongerNeeded(model)
+                    
+                    slotData.car = veh
+                    
+                    SetEntityAlpha(veh, 0, false)
+                    CreateThread(function()
+                        for alpha = 0, 255, 15 do
+                            if not DoesEntityExist(veh) then break end
+                            SetEntityAlpha(veh, math.min(alpha, 255), false)
+                            Wait(20)
+                        end
+                        if DoesEntityExist(veh) then ResetEntityAlpha(veh) end
+                    end)
+                    
+                    if config.useTarget then
+                        exports.ox_target:addLocalEntity(veh, {
+                            {
+                                icon = 'fas fa-car',
+                                label = locale('menu.view_contract'),
+                                onSelect = function()
+                                    TriggerEvent('qb-vehiclesales:client:OpenContract', v.slotIndex)
+                                end,
+                                distance = 2.0
+                            }
+                        })
+                        slotData.hasTarget = true
+                    end
+                else
+                    SetModelAsNoLongerNeeded(model)
+                end
             end
+        end
+    end
+    
+    for slot, data in pairs(occasionVehicles[zone]) do
+        if data.plate and currentPlates[data.plate] == true then
+            DeleteGhostVehicle(data.plate)
+            occasionVehicles[zone][slot] = nil
         end
     end
 end
 
 RegisterNetEvent('qb-occasion:client:syncDisplayVehicles', function(syncZone, vDataList)
-    -- Only act if the player is currently inside the zone that was updated
     if zone == syncZone then
-        teardownDisplayVehicles()
         setupDisplayVehicles(vDataList)
     end
 end)
@@ -394,18 +468,14 @@ local function completeVehicleSale()
     isProcessingVehicleAction = true
 
     local veh = cache.vehicle
+    local oldVehNetId = nil
     if veh and veh ~= 0 then
-        -- safeDeleteVehicle is synchronous: this line blocks until the vehicle is
-        -- actually gone from the world before we continue.
-        safeDeleteVehicle(veh)
+        oldVehNetId = VehToNet(veh)
     end
 
     isProcessingVehicleAction = false
 
-    -- Only trigger the server event AFTER the vehicle is confirmed deleted.
-    -- This way, when the server broadcasts refreshVehicles, there is no stray
-    -- entity left at the spot for the new display vehicle to overlap with.
-    TriggerServerEvent('qb-occasions:server:sellVehicle', price, vehicleData)
+    TriggerServerEvent('qb-occasions:server:sellVehicle', price, vehicleData, oldVehNetId)
 
     exports.qbx_core:Notify((locale('success.car_up_for_sale'):format(config.currencySymbol or "R$", price)), 'success')
 end
@@ -970,9 +1040,8 @@ AddEventHandler('qb-occasions:client:SellBackCar', function()
         local owned, balance = lib.callback.await('qbx_vehiclesales:server:checkVehicleOwner', false, vehicleData.plate)
         if owned then
             if not balance or balance < 1 then
-                TriggerServerEvent('qb-occasions:server:sellVehicleBack', vehicleData)
-                -- Use safe deletion to avoid streaming/prop-disappearance bug
-                safeDeleteVehicle(cache.vehicle)
+                local oldVehNetId = VehToNet(cache.vehicle)
+                TriggerServerEvent('qb-occasions:server:sellVehicleBack', vehicleData, oldVehNetId)
             else
                 exports.qbx_core:Notify(locale('error.finish_payments'), 'error', 3500)
             end

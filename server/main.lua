@@ -12,16 +12,6 @@ local displayVehicles = {} -- { [zone] = { {netId, plate, loc, price, owner, mod
 local function refreshDisplayVehicles(zone)
     if not zone or not config.zones[zone] then return end
     
-    -- Despawn existing display entities for this zone
-    if displayVehicles[zone] then
-        for i = 1, #displayVehicles[zone] do
-            local netId = displayVehicles[zone][i].netId
-            if netId then
-                local ent = NetworkGetEntityFromNetworkId(netId)
-                if DoesEntityExist(ent) then DeleteEntity(ent) end
-            end
-        end
-    end
     displayVehicles[zone] = {}
     
     local spots = config.zones[zone].vehicleSpots
@@ -35,25 +25,9 @@ local function refreshDisplayVehicles(zone)
             
             local v = result[i]
             local coords = spots[count]
-            local vehmods = json.decode(v.mods)
-            
-            local netId = qbx.spawnVehicle({
-                model = v.model, 
-                spawnSource = coords, 
-                warp = false, 
-                props = vehmods
-            })
-            
-            local ent = NetworkGetEntityFromNetworkId(netId)
-            if ent and ent ~= 0 then
-                SetVehicleNumberPlateText(ent, v.plate)
-                FreezeEntityPosition(ent, true)
-                SetVehicleDoorsLocked(ent, 3)
-            end
             
             -- Prepare data for clients
             local vData = {
-                netId        = netId,
                 plate        = v.plate,
                 model        = v.model,
                 owner        = v.seller,
@@ -294,9 +268,17 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     )
 end)
 
-RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehicleData)
+RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehicleData, oldVehNetId)
     local src = source
     local player = exports.qbx_core:GetPlayer(src)
+    
+    if oldVehNetId then
+        local ent = NetworkGetEntityFromNetworkId(oldVehNetId)
+        if DoesEntityExist(ent) then
+            DeleteEntity(ent)
+        end
+    end
+    
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
     MySQL.insert('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
@@ -335,10 +317,18 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     )
 end)
 
-RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData)
+RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData, oldVehNetId)
     local src = source
     local player = exports.qbx_core:GetPlayer(src)
     local plate = vehData.plate
+    
+    if oldVehNetId then
+        local ent = NetworkGetEntityFromNetworkId(oldVehNetId)
+        if DoesEntityExist(ent) then
+            DeleteEntity(ent)
+        end
+    end
+    
     local price = getVehPrice(vehData.model)
     local percentage = config.sellBackPercentage or 50
     local payout = math.floor(price * (percentage / 100))
