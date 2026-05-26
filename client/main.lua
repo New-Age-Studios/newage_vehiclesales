@@ -63,32 +63,11 @@ local function DeleteGhostVehicle(plate, immediate)
         occasionVehicles[zone][slot].hasTarget = false
     end
     
-    occasionVehicles[zone][slot].car = nil
+    occasionVehicles[zone][slot] = nil
     
-    CreateThread(function()
-        if not immediate then
-            for alpha = 255, 0, -15 do
-                if DoesEntityExist(veh) then
-                    SetEntityAlpha(veh, math.max(alpha, 0), false)
-                    Wait(20)
-                else
-                    break
-                end
-            end
-        end
-
-        for i = 1, 5 do
-            if DoesEntityExist(veh) then
-                SetEntityAsMissionEntity(veh, true, true)
-                SetEntityAsNoLongerNeeded(veh)
-                DeleteVehicle(veh)
-                DeleteEntity(veh)
-            else
-                break
-            end
-            Wait(50)
-        end
-    end)
+    SetEntityAsMissionEntity(veh, true, true)
+    DeleteVehicle(veh)
+    DeleteEntity(veh)
 end
 
 local function teardownDisplayVehicles()
@@ -740,7 +719,7 @@ end
 
 local function isCarSpawned(Car)
     if not zone or not occasionVehicles or not occasionVehicles[zone] then return false end
-    return occasionVehicles[zone][Car] ~= nil
+    return occasionVehicles[zone][Car] ~= nil and occasionVehicles[zone][Car].car ~= nil and DoesEntityExist(occasionVehicles[zone][Car].car)
 end
 
 RegisterNUICallback('sellVehicle', function(data, cb)
@@ -921,8 +900,7 @@ end)
 RegisterNUICallback('cancelSale', function(data, cb)
     local foundLoc = nil
     if zone and occasionVehicles[zone] then
-        for i = 1, #occasionVehicles[zone] do
-            local oVeh = occasionVehicles[zone][i]
+        for _, oVeh in pairs(occasionVehicles[zone]) do
             if oVeh and oVeh.plate == data.plate then
                 foundLoc = oVeh.loc
                 break
@@ -975,8 +953,7 @@ RegisterNUICallback('takeVehicleBack', function(_, cb)
     -- Pass loc so the server can relay the spawn position back to this client
     local data = currentVehicle
     if zone and occasionVehicles[zone] then
-        for i = 1, #occasionVehicles[zone] do
-            local oVeh = occasionVehicles[zone][i]
+        for _, oVeh in pairs(occasionVehicles[zone]) do
             if oVeh and oVeh.plate == currentVehicle.plate then
                 data = table.clone and table.clone(currentVehicle) or {}
                 for k, v in pairs(currentVehicle) do data[k] = v end
