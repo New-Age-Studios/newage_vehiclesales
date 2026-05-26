@@ -108,8 +108,9 @@ local function setupDisplayVehicles(vDataList)
     if not occasionVehicles[zone] then occasionVehicles[zone] = {} end
     if not vDataList then return end
 
+    local currentZone = zone
     local currentPlates = {}
-    for slot, data in pairs(occasionVehicles[zone]) do
+    for slot, data in pairs(occasionVehicles[currentZone]) do
         if data.plate and data.car then
             currentPlates[data.plate] = true
         end
@@ -117,14 +118,14 @@ local function setupDisplayVehicles(vDataList)
 
     for i = 1, #vDataList do
         local v = vDataList[i]
-        if v.zone == zone then
+        if v.zone == currentZone then
             local plate = v.plate
             
-            if not occasionVehicles[zone][v.slotIndex] then
-                occasionVehicles[zone][v.slotIndex] = {}
+            if not occasionVehicles[currentZone][v.slotIndex] then
+                occasionVehicles[currentZone][v.slotIndex] = {}
             end
             
-            local slotData = occasionVehicles[zone][v.slotIndex]
+            local slotData = occasionVehicles[currentZone][v.slotIndex]
             slotData.loc       = v.loc
             slotData.price     = v.price
             slotData.owner     = v.owner
@@ -142,61 +143,76 @@ local function setupDisplayVehicles(vDataList)
             currentPlates[plate] = false
             
             if not slotData.car or not DoesEntityExist(slotData.car) then
-                local model = joaat(v.model)
-                if lib.requestModel(model, 5000) then
-                    local coords = v.loc
-                    local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
-                    SetVehicleNumberPlateText(veh, plate)
-                    
-                    if v.mods then
-                        local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
-                        lib.setVehicleProperties(veh, modTable)
-                    end
-                    
-                    SetEntityInvincible(veh, true)
-                    SetVehicleFixed(veh)
-                    SetVehicleDoorsLocked(veh, 2)
-                    FreezeEntityPosition(veh, true)
-                    SetVehicleEngineOn(veh, false, true, true)
-                    SetEntityCollision(veh, true, true)
-                    SetModelAsNoLongerNeeded(model)
-                    
-                    slotData.car = veh
-                    
-                    SetEntityAlpha(veh, 0, false)
+                if not slotData.isSpawning then
+                    slotData.isSpawning = true
                     CreateThread(function()
-                        for alpha = 0, 255, 15 do
-                            if not DoesEntityExist(veh) then break end
-                            SetEntityAlpha(veh, math.min(alpha, 255), false)
-                            Wait(20)
+                        local model = joaat(v.model)
+                        if lib.requestModel(model, 5000) then
+                            -- Confirm we are still in the same zone and slot wasn't cleared
+                            if zone == currentZone and occasionVehicles[currentZone] and occasionVehicles[currentZone][v.slotIndex] == slotData then
+                                if not slotData.car or not DoesEntityExist(slotData.car) then
+                                    local coords = v.loc
+                                    local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
+                                    SetVehicleNumberPlateText(veh, plate)
+                                    
+                                    if v.mods then
+                                        local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
+                                        lib.setVehicleProperties(veh, modTable)
+                                    end
+                                    
+                                    SetEntityInvincible(veh, true)
+                                    SetVehicleFixed(veh)
+                                    SetVehicleDoorsLocked(veh, 2)
+                                    FreezeEntityPosition(veh, true)
+                                    SetVehicleEngineOn(veh, false, true, true)
+                                    SetEntityCollision(veh, true, true)
+                                    SetModelAsNoLongerNeeded(model)
+                                    
+                                    slotData.car = veh
+                                    
+                                    SetEntityAlpha(veh, 0, false)
+                                    CreateThread(function()
+                                        for alpha = 0, 255, 15 do
+                                            if not DoesEntityExist(veh) then break end
+                                            SetEntityAlpha(veh, math.min(alpha, 255), false)
+                                            Wait(20)
+                                        end
+                                        if DoesEntityExist(veh) then ResetEntityAlpha(veh) end
+                                    end)
+                                    
+                                    if config.useTarget then
+                                        exports.ox_target:addLocalEntity(veh, {
+                                            {
+                                                icon = 'fas fa-car',
+                                                label = locale('menu.view_contract'),
+                                                onSelect = function()
+                                                    TriggerEvent('qb-vehiclesales:client:OpenContract', v.slotIndex)
+                                                end,
+                                                distance = 2.0
+                                            }
+                                        })
+                                        slotData.hasTarget = true
+                                    end
+                                else
+                                    SetModelAsNoLongerNeeded(model)
+                                end
+                            else
+                                SetModelAsNoLongerNeeded(model)
+                            end
+                        else
+                            SetModelAsNoLongerNeeded(model)
                         end
-                        if DoesEntityExist(veh) then ResetEntityAlpha(veh) end
+                        slotData.isSpawning = false
                     end)
-                    
-                    if config.useTarget then
-                        exports.ox_target:addLocalEntity(veh, {
-                            {
-                                icon = 'fas fa-car',
-                                label = locale('menu.view_contract'),
-                                onSelect = function()
-                                    TriggerEvent('qb-vehiclesales:client:OpenContract', v.slotIndex)
-                                end,
-                                distance = 2.0
-                            }
-                        })
-                        slotData.hasTarget = true
-                    end
-                else
-                    SetModelAsNoLongerNeeded(model)
                 end
             end
         end
     end
     
-    for slot, data in pairs(occasionVehicles[zone]) do
+    for slot, data in pairs(occasionVehicles[currentZone] or {}) do
         if data.plate and currentPlates[data.plate] == true then
             DeleteGhostVehicle(data.plate)
-            occasionVehicles[zone][slot] = nil
+            occasionVehicles[currentZone][slot] = nil
         end
     end
 end
