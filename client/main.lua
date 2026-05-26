@@ -8,6 +8,11 @@ local spawnedPeds = {}
 local spawnedProps = {}
 local debugVehicles = {}
 
+local isPositioningVehicle = false
+local pendingSellData = nil
+local targetSellSpot = nil
+local sellSpotBlip = nil
+
 local function spawnDebugVehicles(zoneName)
     if not config.debug then return end
     local cfg = config.zones[zoneName]
@@ -39,52 +44,77 @@ local function despawnDebugVehicles(zoneName)
     debugVehicles[zoneName] = nil
 end
 
+local function DeleteDisplayVehicle(veh)
+    if not veh or not DoesEntityExist(veh) then return end
+    
+    SetEntityAsMissionEntity(veh, true, true)
+    SetEntityAsNoLongerNeeded(veh)
+    
+    CreateThread(function()
+        for i = 1, 5 do
+            if DoesEntityExist(veh) then
+                DeleteVehicle(veh)
+                DeleteEntity(veh)
+            else
+                break
+            end
+            Wait(50)
+        end
+    end)
+end
+
 local function spawnOccasionsVehicles(vehicles)
     if zone then
         local oSlot = config.zones[zone].vehicleSpots
-        if not occasionVehicles[zone] then occasionVehicles[zone] = {} end
+        occasionVehicles[zone] = {}
         if vehicles then
+            local count = 0
             for i = 1, #vehicles, 1 do
-                local model = joaat(vehicles[i].model)
-                lib.requestModel(model)
-                occasionVehicles[zone][i] = {
-                    car = CreateVehicle(model, oSlot[i].x, oSlot[i].y, oSlot[i].z, false, false),
-                    loc = vector3(oSlot[i].x, oSlot[i].y, oSlot[i].z),
-                    price = vehicles[i].price,
-                    owner = vehicles[i].seller,
-                    model = vehicles[i].model,
-                    plate = vehicles[i].plate,
-                    oid = vehicles[i].occasionid,
-                    desc = vehicles[i].description,
-                    mods = vehicles[i].mods,
-                    fuelType = vehicles[i].fuel_type,
-                    colorRGB = vehicles[i].color_rgb,
-                    isExotic = vehicles[i].is_exotic,
-                    transmission = vehicles[i].transmission,
-                    photo_url = vehicles[i].photo_url
-                }
-
-                lib.setVehicleProperties(occasionVehicles[zone][i].car, json.decode(vehicles[i].mods))
-
-                SetModelAsNoLongerNeeded(model)
-                SetVehicleOnGroundProperly(occasionVehicles[zone][i].car)
-                SetEntityInvincible(occasionVehicles[zone][i].car,true)
-                SetEntityHeading(occasionVehicles[zone][i].car, oSlot[i].w)
-                SetVehicleDoorsLocked(occasionVehicles[zone][i].car, 3)
-                SetVehicleNumberPlateText(occasionVehicles[zone][i].car, occasionVehicles[zone][i].plate)
-                FreezeEntityPosition(occasionVehicles[zone][i].car,true)
-                if config.useTarget then
-                    if not entityZones then entityZones = {} end
-                    entityZones[i] = exports.ox_target:addLocalEntity(occasionVehicles[zone][i].car, {
-                        {
-                            icon = 'fas fa-car',
-                            label = locale('menu.view_contract'),
-                            onSelect = function()
-                                TriggerEvent('qb-vehiclesales:client:OpenContract', i)
-                            end,
-                            distance = 2.0
+                if vehicles[i].zone == zone then
+                    count = count + 1
+                    if count <= #oSlot then
+                        local model = joaat(vehicles[i].model)
+                        lib.requestModel(model)
+                        occasionVehicles[zone][count] = {
+                            car = CreateVehicle(model, oSlot[count].x, oSlot[count].y, oSlot[count].z, false, false),
+                            loc = oSlot[count],
+                            price = vehicles[i].price,
+                            owner = vehicles[i].seller,
+                            model = vehicles[i].model,
+                            plate = vehicles[i].plate,
+                            oid = vehicles[i].occasionid,
+                            desc = vehicles[i].description,
+                            mods = vehicles[i].mods,
+                            fuelType = vehicles[i].fuel_type,
+                            colorRGB = vehicles[i].color_rgb,
+                            isExotic = vehicles[i].is_exotic,
+                            transmission = vehicles[i].transmission,
+                            photo_url = vehicles[i].photo_url
                         }
-                    })
+
+                        lib.setVehicleProperties(occasionVehicles[zone][count].car, json.decode(vehicles[i].mods))
+
+                        SetModelAsNoLongerNeeded(model)
+                        SetVehicleOnGroundProperly(occasionVehicles[zone][count].car)
+                        SetEntityInvincible(occasionVehicles[zone][count].car,true)
+                        SetEntityHeading(occasionVehicles[zone][count].car, oSlot[count].w)
+                        SetVehicleDoorsLocked(occasionVehicles[zone][count].car, 3)
+                        SetVehicleNumberPlateText(occasionVehicles[zone][count].car, occasionVehicles[zone][count].plate)
+                        FreezeEntityPosition(occasionVehicles[zone][count].car,true)
+                        if config.useTarget then
+                            if not entityZones then entityZones = {} end
+                            entityZones[count] = exports.ox_target:addLocalEntity(occasionVehicles[zone][count].car, {
+                                {
+                                    icon = 'fas fa-car',
+                                    label = locale('menu.view_contract'),
+                                    onSelect = function()
+                                        TriggerEvent('qb-vehiclesales:client:OpenContract', count)
+                                    end,
+                                    distance = 2.0
+                                }
+                            })
+                        end
+                    end
                 end
             end
         end
@@ -97,15 +127,34 @@ local function despawnOccasionsVehicles()
     for i = 1, #oSlot, 1 do
         local loc = oSlot[i]
         local oldVehicle = GetClosestVehicle(loc.x, loc.y, loc.z, 1.3, 0, 70)
-        if oldVehicle then
-            DeleteVehicle(oldVehicle)
+        if oldVehicle and not NetworkGetEntityIsNetworked(oldVehicle) then
+            DeleteDisplayVehicle(oldVehicle)
         end
 
-        if entityZones[i] and config.useTarget then
-            exports.ox_target:removeLocalEntity(occasionVehicles[zone][i].car, locale('menu.view_contract'))
+        if occasionVehicles[zone] and occasionVehicles[zone][i] and occasionVehicles[zone][i].car then
+            if entityZones[i] and config.useTarget then
+                exports.ox_target:removeLocalEntity(occasionVehicles[zone][i].car, locale('menu.view_contract'))
+            end
         end
     end
     table.wipe(entityZones)
+end
+
+local function deleteDisplayVehicleByPlate(plate)
+    if not zone or not occasionVehicles[zone] then return end
+    for i = 1, #occasionVehicles[zone] do
+        local data = occasionVehicles[zone][i]
+        if data and data.plate == plate then
+            if DoesEntityExist(data.car) then
+                DeleteDisplayVehicle(data.car)
+            end
+            if entityZones[i] and config.useTarget then
+                exports.ox_target:removeLocalEntity(data.car, locale('menu.view_contract'))
+                entityZones[i] = nil
+            end
+            break
+        end
+    end
 end
 
 local function openMainMenu(bool)
@@ -300,17 +349,54 @@ local function openBuyContract(sellerData, vehicleData)
     })
 end
 
-local function sellVehicleWait(price)
+local function cancelVehicleSale(reason)
+    isPositioningVehicle = false
+    pendingSellData = nil
+    targetSellSpot = nil
+    if sellSpotBlip then
+        RemoveBlip(sellSpotBlip)
+        sellSpotBlip = nil
+    end
+    lib.hideTextUI()
+    exports.qbx_core:Notify(reason or "Venda cancelada.", 'error', 3500)
+end
+
+local function completeVehicleSale()
+    local price = pendingSellData.price
+    local vehicleData = pendingSellData.vehicleData
+    
+    isPositioningVehicle = false
+    pendingSellData = nil
+    targetSellSpot = nil
+    if sellSpotBlip then
+        RemoveBlip(sellSpotBlip)
+        sellSpotBlip = nil
+    end
+    lib.hideTextUI()
+    
+    PlaySound(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false, 0, true)
+    
     DoScreenFadeOut(250)
     Wait(250)
-    DeleteVehicle(cache.vehicle)
-    Wait(1500)
+    
+    local veh = cache.vehicle
+    if veh and veh ~= 0 then
+        DeleteVehicle(veh)
+    end
+    
+    TriggerServerEvent('qb-occasions:server:sellVehicle', price, vehicleData)
+    
+    Wait(1000)
     DoScreenFadeIn(250)
+    
     exports.qbx_core:Notify((locale('success.car_up_for_sale'):format(config.currencySymbol or "R$", price)), 'success')
-    PlaySound(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false, 0, true)
 end
 
 local function sellData(data, plate)
+    if isPositioningVehicle then
+        return exports.qbx_core:Notify("Você já está posicionando um veículo!", "error", 3500)
+    end
+
     local dataReturning = lib.callback.await('qb-vehiclesales:server:CheckModelName', false, plate)
     local vehicleData = {}
     vehicleData.ent = cache.vehicle
@@ -326,8 +412,113 @@ local function sellData(data, plate)
     vehicleData.photoUrl = data.vehicleData.photoUrl
     vehicleData.zone = zone
     
-    TriggerServerEvent('qb-occasions:server:sellVehicle', data.price, vehicleData)
-    sellVehicleWait(data.price)
+    local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
+    local count = 0
+    if vehicles then
+        for _, v in ipairs(vehicles) do
+            if v.zone == zone then
+                count = count + 1
+            end
+        end
+    end
+    
+    local spots = config.zones[zone].vehicleSpots
+    if count >= #spots then
+        return exports.qbx_core:Notify(locale('error.no_space_on_lot'), 'error', 3500)
+    end
+    
+    targetSellSpot = spots[count + 1]
+    pendingSellData = {
+        price = data.price,
+        vehicleData = vehicleData
+    }
+    
+    sellSpotBlip = AddBlipForCoord(targetSellSpot.x, targetSellSpot.y, targetSellSpot.z)
+    SetBlipSprite(sellSpotBlip, 615)
+    SetBlipColour(sellSpotBlip, 2)
+    SetBlipRoute(sellSpotBlip, true)
+    SetBlipRouteColour(sellSpotBlip, 2)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentSubstringPlayerName("Vaga de Exposição")
+    EndTextCommandSetBlipName(sellSpotBlip)
+    
+    exports.qbx_core:Notify("Dirija até a vaga demarcada no mapa para posicionar o veículo.", "primary", 6000)
+    
+    isPositioningVehicle = true
+    
+    CreateThread(function()
+        local isShowingPrompt = false
+        while isPositioningVehicle do
+            local sleep = 500
+            local ped = PlayerPedId()
+            local veh = cache.vehicle
+            
+            if veh and veh ~= 0 and GetPedInVehicleSeat(veh, -1) == ped then
+                local coords = GetEntityCoords(veh)
+                local dist = #(coords - targetSellSpot.xyz)
+                
+                if dist < 30.0 then
+                    sleep = 0
+                    
+                    -- Get the actual ground height from collision to prevent floating markers
+                    local success, groundZ = GetGroundZFor_3dCoord(targetSellSpot.x, targetSellSpot.y, targetSellSpot.z, false)
+                    local markerZ = success and groundZ or (targetSellSpot.z - 0.95)
+                    
+                    -- Flat circle flat on the pavement
+                    DrawMarker(27, targetSellSpot.x, targetSellSpot.y, markerZ + 0.05, 
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                               3.0, 3.0, 1.0, 
+                               46, 204, 113, 150, 
+                               false, false, 2, false, nil, nil, false)
+                               
+                    -- Vertical cylinder starting at pavement and going 2m up
+                    DrawMarker(1, targetSellSpot.x, targetSellSpot.y, markerZ, 
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                               3.0, 3.0, 2.0, 
+                               46, 204, 113, 80, 
+                               false, false, 2, false, nil, nil, false)
+                    
+                    local dist2D = #(coords.xy - targetSellSpot.xy)
+                    local distZ = math.abs(coords.z - markerZ)
+                    
+                    if dist2D < 2.0 and distZ < 2.0 then
+                        if not isShowingPrompt then
+                            lib.showTextUI("Pressione [E] para colocar o carro à venda", {position = 'right-center'})
+                            isShowingPrompt = true
+                        end
+                        
+                        if IsControlJustReleased(0, 38) then
+                            isShowingPrompt = false
+                            lib.hideTextUI()
+                            completeVehicleSale()
+                            break
+                        end
+                    else
+                        if isShowingPrompt then
+                            lib.hideTextUI()
+                            isShowingPrompt = false
+                        end
+                    end
+                else
+                    if isShowingPrompt then
+                        lib.hideTextUI()
+                        isShowingPrompt = false
+                    end
+                end
+            else
+                if isShowingPrompt then
+                    lib.hideTextUI()
+                    isShowingPrompt = false
+                end
+                cancelVehicleSale("Você saiu do veículo. A venda foi cancelada.")
+                break
+            end
+            Wait(sleep)
+        end
+        if isShowingPrompt then
+            lib.hideTextUI()
+        end
+    end)
 end
 
 local function spawnSellPed(zoneName)
@@ -418,6 +609,9 @@ local function createZones()
                 spawnDebugVehicles(self.name)
             end,
             onExit = function()
+                if isPositioningVehicle then
+                    cancelVehicleSale("Você se afastou da concessionária. A venda foi cancelada.")
+                end
                 deleteSellPed(zone)
                 despawnDebugVehicles(zone)
                 despawnOccasionsVehicles()
@@ -624,6 +818,21 @@ RegisterNUICallback('selectSellBack', function(_, cb)
 end)
 
 RegisterNUICallback('cancelSale', function(data, cb)
+    local foundLoc = nil
+    if zone and occasionVehicles[zone] then
+        for i = 1, #occasionVehicles[zone] do
+            local oVeh = occasionVehicles[zone][i]
+            if oVeh and oVeh.plate == data.plate then
+                foundLoc = oVeh.loc
+                break
+            end
+        end
+    end
+    
+    if foundLoc then
+        data.loc = foundLoc
+    end
+
     TriggerServerEvent('qb-occasions:server:ReturnVehicle', data)
     SetNuiFocus(false, false)
     cb('ok')
@@ -666,21 +875,49 @@ RegisterNUICallback('takeVehicleBack', function(_, cb)
     cb('ok')
 end)
 
-RegisterNetEvent('qb-occasions:client:BuyFinished', function(vehData)
-    DoScreenFadeOut(250)
-    Wait(500)
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, config.zones[zone].buyVehicle, false)
+RegisterNetEvent('qb-occasions:client:BuyFinished', function(vehData, spawnCoords)
+    -- Delete local display vehicle immediately
+    deleteDisplayVehicleByPlate(vehData.plate)
+    Wait(300)
+    
+    local targetZone = vehData.zone or zone
+    local coords = spawnCoords
+    if not coords then
+        coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
+    end
+    
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true) -- warp = true
     local timeout = 100
     while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
         Wait(10)
         timeout -= 1
     end
     local veh = NetToVeh(netId)
-    SetEntityHeading(veh, config.zones[zone].buyVehicle.w)
+    
+    FreezeEntityPosition(veh, true)
+    SetEntityCoords(veh, coords.x, coords.y, coords.z + 0.5, false, false, false, false)
+    SetEntityHeading(veh, coords.w)
     SetVehicleFuelLevel(veh, 100)
+    
+    local collisionTimeout = 3000
+    while not HasCollisionLoadedAroundEntity(veh) and collisionTimeout > 0 do
+        Wait(100)
+        collisionTimeout -= 100
+    end
+    
+    SetVehicleOnGroundProperly(veh)
+    Wait(50)
+    SetVehicleOnGroundProperly(veh)
+    
+    SetVehicleFixed(veh)
+    SetVehicleUndriveable(veh, false)
+    SetVehicleDoorsLocked(veh, 1) -- unlocked
+    FreezeEntityPosition(veh, false)
+    
+    Wait(0)
+    SetVehicleHandbrake(veh, false)
+    
     exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
-    Wait(500)
-    DoScreenFadeIn(250)
     currentVehicle = {}
 end)
 
@@ -705,21 +942,82 @@ AddEventHandler('qb-occasions:client:SellBackCar', function()
     end
 end)
 
-RegisterNetEvent('qb-occasions:client:ReturnOwnedVehicle', function(vehData)
-    DoScreenFadeOut(250)
-    Wait(500)
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, config.zones[zone].buyVehicle, false)
+RegisterNetEvent('qb-occasions:client:ReturnOwnedVehicle', function(vehData, spawnCoords)
+    -- Delete local display vehicle immediately
+    deleteDisplayVehicleByPlate(vehData.plate)
+    Wait(300)
+    
+    local targetZone = vehData.zone or zone
+    local coords = spawnCoords
+    if not coords then
+        coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
+    end
+    
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true) -- warp = true
     local timeout = 100
     while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
         Wait(10)
         timeout -= 1
     end
     local veh = NetToVeh(netId)
-    SetEntityHeading(veh, config.zones[zone].buyVehicle.w)
+    
+    FreezeEntityPosition(veh, true)
+    SetEntityCoords(veh, coords.x, coords.y, coords.z + 0.5, false, false, false, false)
+    SetEntityHeading(veh, coords.w)
     SetVehicleFuelLevel(veh, 100)
+    
+    local collisionTimeout = 3000
+    while not HasCollisionLoadedAroundEntity(veh) and collisionTimeout > 0 do
+        Wait(100)
+        collisionTimeout -= 100
+    end
+    
+    SetVehicleOnGroundProperly(veh)
+    Wait(50)
+    SetVehicleOnGroundProperly(veh)
+    
+    SetVehicleFixed(veh)
+    SetVehicleUndriveable(veh, false)
+    SetVehicleDoorsLocked(veh, 1) -- unlocked
+    FreezeEntityPosition(veh, false)
+    
+    Wait(0)
+    SetVehicleHandbrake(veh, false)
+    
     exports.qbx_core:Notify(locale('success.vehicle_bought'), 'success', 2500)
-    Wait(500)
-    DoScreenFadeIn(250)
+    
+    if config.showLocatorLine then
+        CreateThread(function()
+            local timeout = 15000 -- 15 segundos
+            
+            if DoesEntityExist(veh) then
+                SetEntityDrawOutlineColor(46, 204, 113, 200) -- Green outline
+                SetEntityDrawOutlineShader(1)
+                SetEntityDrawOutline(veh, true)
+            end
+            
+            while timeout > 0 and DoesEntityExist(veh) do
+                Wait(0)
+                timeout = timeout - (GetFrameTime() * 1000)
+                
+                if cache.vehicle == veh then
+                    break
+                end
+                
+                local vCoords = GetEntityCoords(veh)
+                DrawMarker(0, vCoords.x, vCoords.y, vCoords.z + 2.0, 
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                           0.5, 0.5, 0.5, 
+                           46, 204, 113, 180, 
+                           true, true, 2, false, nil, nil, false)
+            end
+            
+            if DoesEntityExist(veh) then
+                SetEntityDrawOutline(veh, false)
+            end
+        end)
+    end
+
     currentVehicle = {}
 end)
 
@@ -965,6 +1263,9 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if cache.resource == resourceName then
         cameraActive = false
+        if isPositioningVehicle then
+            cancelVehicleSale()
+        end
         if cache.vehicle and cache.vehicle ~= 0 then
             FreezeEntityPosition(cache.vehicle, false)
         end

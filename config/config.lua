@@ -1,7 +1,7 @@
 return {
     -- Configuração geral
     debug = false, -- Ativa o modo de debug (mostra polyzones, vagas de veículos e local de venda)
-
+    
     -- API FiveManage
     FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
     FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
@@ -15,6 +15,9 @@ return {
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
     currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
     currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")
+
+    -- Configurações cancelamento de venda
+    showLocatorLine = true, -- Mostra uma linha vertical no veículo após o cancelamento para facilitar a localização
 
     -- Configurações do Target
     useTarget = true, -- Ativa/desativa o target (Se true, usa ox_target. Se false, usa blips)

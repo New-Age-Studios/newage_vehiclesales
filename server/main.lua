@@ -184,7 +184,7 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     MySQL.insert('INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state) VALUES (?, ?, ?, ?, ?, ?, ?)', {player.PlayerData.license, player.PlayerData.citizenid, vehicleData.model, joaat(vehicleData.model), vehicleData.mods, vehicleData.plate, 0})
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
-    TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1])
+    TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1], vehicleData.loc)
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
 
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
@@ -310,7 +310,7 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
         end
     end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
-    TriggerClientEvent('qb-occasions:client:BuyFinished', src, result[1])
+    TriggerClientEvent('qb-occasions:client:BuyFinished', src, result[1], vehicleData.loc)
     TriggerClientEvent('qb-occasion:client:refreshVehicles', -1)
     
     -- Insert transaction into history before deleting the active listing
