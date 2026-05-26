@@ -12,6 +12,37 @@ local pendingSellData = nil
 local targetSellSpot = nil
 local sellSpotBlip = nil
 
+local function spawnDebugVehicles(zoneName)
+    if not config.debug then return end
+    local cfg = config.zones[zoneName]
+    if not cfg then return end
+
+    local model = joaat('blista') -- Modelo de carro padrão para debug
+    lib.requestModel(model)
+
+    debugVehicles[zoneName] = {}
+
+    for i, spot in ipairs(cfg.vehicleSpots) do
+        local veh = CreateVehicle(model, spot.x, spot.y, spot.z, spot.w, false, false)
+        SetEntityAlpha(veh, 100, false)
+        SetEntityCollision(veh, false, false)
+        FreezeEntityPosition(veh, true)
+        SetVehicleDoorsLocked(veh, 2)
+        SetModelAsNoLongerNeeded(model)
+        table.insert(debugVehicles[zoneName], veh)
+    end
+end
+
+local function despawnDebugVehicles(zoneName)
+    if not debugVehicles[zoneName] then return end
+    for _, veh in ipairs(debugVehicles[zoneName]) do
+        if DoesEntityExist(veh) then
+            DeleteEntity(veh)
+        end
+    end
+    debugVehicles[zoneName] = nil
+end
+
 local function teardownDisplayVehicles()
     if not zone then return end
     if occasionVehicles[zone] then
