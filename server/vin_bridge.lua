@@ -67,16 +67,19 @@ function VINBridge.insert(fields)
     end
 
     local mileage = fields.mileage or 0
+    local damage = fields.damage
+    local engine = fields.engine or 1000.0
+    local body = fields.body or 1000.0
 
     if vin then
         MySQL.insert(
-            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, vin, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, vin, mileage }
+            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, vin, mileage, damage, engine, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, vin, mileage, damage, engine, body }
         )
     else
         MySQL.insert(
-            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, mileage }
+            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, mileage, damage, engine, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, mileage, damage, engine, body }
         )
     end
 end

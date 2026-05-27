@@ -272,7 +272,10 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
         mods      = vehicleData.mods,
         plate     = vehicleData.plate,
         vin       = result[1].vin,
-        mileage   = result[1].mileage
+        mileage   = result[1].mileage,
+        damage    = result[1].damage,
+        engine    = result[1].engine,
+        body      = result[1].body
     })
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
@@ -327,9 +330,12 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
 
-    local pvData = MySQL.single.await('SELECT vin, mileage FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
+    local pvData = MySQL.single.await('SELECT vin, mileage, damage, engine, body FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
     local vin = pvData and pvData.vin
     local mileage = vehicleData.mileage or (pvData and pvData.mileage) or 0
+    local damage = pvData and pvData.damage
+    local engine = pvData and pvData.engine or 1000.0
+    local body = pvData and pvData.body or 1000.0
 
     if mileage == 0 and config.mileageProvider == "jg-vehiclemileage" and GetResourceState("jg-vehiclemileage") == "started" then
         local ok, result = pcall(function()
@@ -341,7 +347,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     end
 
     MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
-    MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
+    MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage, damage, engine, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
         vehicleData.desc, 
@@ -357,7 +363,10 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         vehicleData.zone,
         freeSpot,
         vin,
-        mileage
+        mileage,
+        damage,
+        engine,
+        body
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     
@@ -449,7 +458,10 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
         mods      = result[1].mods,
         plate     = result[1].plate,
         vin       = result[1].vin,
-        mileage   = result[1].mileage
+        mileage   = result[1].mileage,
+        damage    = result[1].damage,
+        engine    = result[1].engine,
+        body      = result[1].body
     })
     if sellerData then
         sellerData.Functions.AddMoney('bank', sellerPayout)
@@ -493,7 +505,10 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
         result[1].photo_url,
         result[1].zone,
         result[1].vin,
-        result[1].mileage
+        result[1].mileage,
+        result[1].damage,
+        result[1].engine,
+        result[1].body
     })
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
     TriggerEvent('qb-phone:server:sendNewMailToOffline', sellerCitizenId, {
