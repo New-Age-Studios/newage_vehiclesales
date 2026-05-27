@@ -262,7 +262,14 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
         return
     end
 
-    MySQL.query.await('UPDATE player_vehicles SET garage = ?, state = 0 WHERE plate = ?', {'pillboxgarage', vehicleData.plate})
+    VINBridge.insert({
+        license   = player.PlayerData.license,
+        citizenid = player.PlayerData.citizenid,
+        model     = vehicleData.model,
+        hash      = joaat(vehicleData.model),
+        mods      = vehicleData.mods,
+        plate     = vehicleData.plate,
+    })
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
     TriggerClientEvent('qb-occasions:client:ReturnOwnedVehicle', src, result[1], vehicleData.loc)
@@ -316,7 +323,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
 
-    MySQL.query.await('UPDATE player_vehicles SET garage = ?, state = 0 WHERE plate = ? AND vehicle = ?',{'occasions', vehicleData.plate, vehicleData.model})
+    MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
     MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
@@ -415,7 +422,14 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
     local fee = config.dealerFee or 0
     local sellerPayout = math.ceil(result[1].price * (1 - (fee / 100)))
     player.Functions.RemoveMoney(method, result[1].price)
-    MySQL.query.await('UPDATE player_vehicles SET citizenid = ?, garage = ?, state = 0 WHERE plate = ?', {player.PlayerData.citizenid, 'pillboxgarage', result[1].plate})
+    VINBridge.insert({
+        license   = player.PlayerData.license,
+        citizenid = player.PlayerData.citizenid,
+        model     = result[1].model,
+        hash      = GetHashKey(result[1].model),
+        mods      = result[1].mods,
+        plate     = result[1].plate,
+    })
     if sellerData then
         sellerData.Functions.AddMoney('bank', sellerPayout)
     else
