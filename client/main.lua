@@ -579,7 +579,7 @@ local function sellData(data, plate)
     isPositioningVehicle = true
     
     CreateThread(function()
-        local isShowingPrompt = false
+        local promptState = nil
         while isPositioningVehicle do
             local sleep = 500
             local ped = PlayerPedId()
@@ -614,40 +614,48 @@ local function sellData(data, plate)
                     local distZ = math.abs(coords.z - markerZ)
                     
                     if dist2D < 2.0 and distZ < 2.0 then
-                        if not isShowingPrompt then
-                            lib.showTextUI("Pressione [E] para colocar o carro à venda", {position = 'right-center'})
-                            isShowingPrompt = true
-                        end
-                        
-                        if IsControlJustReleased(0, 38) then
-                            isShowingPrompt = false
-                            lib.hideTextUI()
-                            completeVehicleSale()
-                            break
+                        local isStopped = GetEntitySpeed(veh) < 0.5
+                        if isStopped then
+                            if promptState ~= 'ready' then
+                                lib.showTextUI("Pressione [E] para colocar o carro à venda", {position = 'right-center'})
+                                promptState = 'ready'
+                            end
+                            
+                            if IsControlJustReleased(0, 38) then
+                                promptState = nil
+                                lib.hideTextUI()
+                                completeVehicleSale()
+                                break
+                            end
+                        else
+                            if promptState ~= 'moving' then
+                                lib.showTextUI("Pare completamente o veículo", {position = 'right-center'})
+                                promptState = 'moving'
+                            end
                         end
                     else
-                        if isShowingPrompt then
+                        if promptState then
                             lib.hideTextUI()
-                            isShowingPrompt = false
+                            promptState = nil
                         end
                     end
                 else
-                    if isShowingPrompt then
+                    if promptState then
                         lib.hideTextUI()
-                        isShowingPrompt = false
+                        promptState = nil
                     end
                 end
             else
-                if isShowingPrompt then
+                if promptState then
                     lib.hideTextUI()
-                    isShowingPrompt = false
+                    promptState = nil
                 end
                 cancelVehicleSale("Você saiu do veículo. A venda foi cancelada.")
                 break
             end
             Wait(sleep)
         end
-        if isShowingPrompt then
+        if promptState then
             lib.hideTextUI()
         end
     end)
