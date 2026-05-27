@@ -2,10 +2,10 @@
     ╔══════════════════════════════════════════════════════════════════════════╗
     ║              NEWAGE VEHICLESALES — MILEAGE BRIDGE (SERVER)              ║
     ║                                                                          ║
-    ║  Callback server-side para buscar quilometragem quando o client-side     ║
-    ║  não consegue via statebag (ex: veículo não está spawnado no momento).   ║
+    ║  Server-side callback to fetch mileage when the client-side             ║
+    ║  cannot via statebag (e.g. vehicle is not spawned at the moment).        ║
     ║                                                                          ║
-    ║  Para usar outro sistema, edite APENAS este arquivo.                     ║
+    ║  To use another system, edit ONLY this file.                            ║
     ╚══════════════════════════════════════════════════════════════════════════╝
 --]]
 
@@ -13,8 +13,8 @@ local config = require 'config.config'
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Callback: newage_vehiclesales:server:getMileage
--- Busca a quilometragem de um veículo pela placa.
--- Chamado pelo openBuyContract quando o contrato do comprador é aberto.
+-- Fetches a vehicle's mileage by plate.
+-- Called by openBuyContract when the buyer's contract is opened.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('newage_vehiclesales:server:getMileage', function(_, plate)
     if not config.mileageProvider or config.mileageProvider == "none" then
@@ -39,22 +39,22 @@ lib.callback.register('newage_vehiclesales:server:getMileage', function(_, plate
         return nil
 
     -- ── custom ────────────────────────────────────────────────────────────
-    -- Configure config.mileageProvider = "custom" no config.lua e
-    -- implemente aqui a busca via banco de dados ou export do seu resource.
+    -- Set config.mileageProvider = "custom" in config.lua and
+    -- implement the fetch via database or your resource's export here.
     elseif provider == "custom" then
-        --[[ EXEMPLO 1: busca direta no banco (se você armazena na tabela player_vehicles)
+        --[[ EXAMPLE 1: direct database fetch (if you store it in player_vehicles table)
         local result = MySQL.scalar.await("SELECT mileage FROM player_vehicles WHERE plate = ?", { plate })
         return result and tonumber(result) or nil
         --]]
 
-        --[[ EXEMPLO 2: via export de outro resource server-side
+        --[[ EXAMPLE 2: via export from another server-side resource
         local ok, result = pcall(function()
-            return exports["meu_mileage"]:getMileageByPlate(plate)
+            return exports["my_mileage"]:getMileageByPlate(plate)
         end)
         if ok and result then return tonumber(result) end
         --]]
 
-        return nil -- ← substitua pela sua implementação
+        return nil -- ← replace with your implementation
     end
 
     return nil

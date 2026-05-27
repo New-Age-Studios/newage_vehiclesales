@@ -109,7 +109,7 @@ local function sendWebhook(action, title, description, color, fields, image)
     PerformHttpRequest(url, function(statusCode, response, headers)
         -- Handled or ignored
     end, 'POST', json.encode({
-        username = "Concessionária de Usados Logs",
+        username = locale('webhook.username'),
         embeds = embed
     }), { ['Content-Type'] = 'application/json' })
 end
@@ -144,7 +144,7 @@ MySQL.ready(function()
             local columns = MySQL.query.await(("SHOW COLUMNS FROM `%s` LIKE '%s'"):format(tableName, columnName))
             if not columns or #columns == 0 then
                 MySQL.query.await(("ALTER TABLE `%s` ADD COLUMN `%s` %s"):format(tableName, columnName, columnDef))
-                print(("^2[newage_vehiclesales]^7 Adicionada coluna '%s' na tabela '%s'"):format(columnName, tableName))
+                print(("^2[newage_vehiclesales]^7 Added column '%s' to table '%s'"):format(columnName, tableName))
             end
         end
         checkAndAddColumn("newage_vehiclesales", "photo_url", "longtext DEFAULT NULL")
@@ -290,8 +290,8 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
     if zoneStr then refreshDisplayVehicles(zoneStr) end
 
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
-    sendWebhook("cancel", "❌ Anúncio Cancelado", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Anúncio original de:** %s %s"):format(
+    sendWebhook("cancel", locale('webhook.cancel_title'), 
+        (locale('webhook.cancel_desc')):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
@@ -383,8 +383,8 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     if vehicleData.zone then refreshDisplayVehicles(vehicleData.zone) end
 
     local vehicleName = VEHICLES[vehicleData.model] and VEHICLES[vehicleData.model].name or vehicleData.model
-    sendWebhook("sell", "🚗 Veículo Anunciado", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Valor:** %s %s\n**Descrição:** %s"):format(
+    sendWebhook("sell", locale('webhook.sell_title'), 
+        (locale('webhook.sell_desc')):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
@@ -392,7 +392,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
             vehicleData.plate, 
             (config.currencySymbol or "R$"),
             vehiclePrice, 
-            vehicleData.desc or "Nenhuma"
+            vehicleData.desc or locale('ui.none')
         ), 
         2279774, -- Green (#22c55e)
         nil,
@@ -420,8 +420,8 @@ RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData, oldVeh
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ?', {plate})
 
     local vehicleName = VEHICLES[vehData.model] and VEHICLES[vehData.model].name or vehData.model
-    sendWebhook("sellback", "🏦 Venda para Concessionária (Trade-In)", 
-        ("**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Preço de Tabela:** %s %s\n**Pago de Volta (%s%%):** %s %s"):format(
+    sendWebhook("sellback", locale('webhook.sellback_title'), 
+        (locale('webhook.sellback_desc')):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
@@ -490,7 +490,7 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
     end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
     
-    -- Exclui do banco primeiro para que o refreshDisplayVehicles não envie a vitrine antiga aos clientes
+    -- Delete from DB first so refreshDisplayVehicles doesn't send the old showcase to clients
     MySQL.query.await('DELETE FROM newage_vehiclesales WHERE plate = ? AND occasionid = ?',{result[1].plate, result[1].occasionid})
     busyVehicles[result[1].plate] = nil
 
@@ -533,8 +533,8 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
         message = (locale('mail.message'):format(config.currencySymbol or "R$", sellerPayout, vehicleName))
     })
 
-    sendWebhook("buy", "🔑 Veículo Comprado", 
-        ("**Comprador:** %s %s (%s)\n**Vendedor:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor Pago:** %s %s"):format(
+    sendWebhook("buy", locale('webhook.buy_title'), 
+        (locale('webhook.buy_desc')):format(
             player.PlayerData.charinfo.firstname, 
             player.PlayerData.charinfo.lastname, 
             player.PlayerData.citizenid, 
@@ -582,11 +582,11 @@ RegisterNetEvent('qbx_vehiclesales:server:deleteHistoryRecord', function(id)
     local record = MySQL.single.await('SELECT * FROM newage_vehiclesales_history WHERE id = ?', {id})
     if record and record.seller == citizenid then
         MySQL.query.await('DELETE FROM newage_vehiclesales_history WHERE id = ?', {id})
-        TriggerClientEvent('qbx_core:Notify', src, "Histórico removido com sucesso!", "success")
+        TriggerClientEvent('qbx_core:Notify', src, locale('success.history_removed'), "success")
 
         local vehicleName = VEHICLES[record.model] and VEHICLES[record.model].name or record.model
-        sendWebhook("delete", "🗑️ Histórico Excluído", 
-            ("**Vendedor:** %s %s (%s)\n**Comprador original:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor da Transação:** %s %s\n**Data da venda:** %s"):format(
+        sendWebhook("delete", locale('webhook.delete_title'), 
+            (locale('webhook.delete_desc')):format(
                 player.PlayerData.charinfo.firstname, 
                 player.PlayerData.charinfo.lastname, 
                 player.PlayerData.citizenid, 
@@ -602,7 +602,7 @@ RegisterNetEvent('qbx_vehiclesales:server:deleteHistoryRecord', function(id)
             record.photo_url
         )
     else
-        TriggerClientEvent('qbx_core:Notify', src, "Você não tem permissão para excluir este histórico.", "error")
+        TriggerClientEvent('qbx_core:Notify', src, locale('error.no_permission_delete'), "error")
     end
 end)
 

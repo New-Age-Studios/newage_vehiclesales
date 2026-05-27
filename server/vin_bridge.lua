@@ -2,22 +2,22 @@
     ╔══════════════════════════════════════════════════════════════════════════╗
     ║              NEWAGE VEHICLESALES — VIN BRIDGE (SERVER)                  ║
     ║                                                                          ║
-    ║  Este arquivo controla a geração de VIN (chassi) ao inserir um          ║
-    ║  veículo na tabela player_vehicles após uma compra ou cancelamento.      ║
+    ║  This file controls the generation of VIN (Chassis) when inserting a    ║
+    ║  vehicle into the player_vehicles table after a purchase or cancel.      ║
     ║                                                                          ║
-    ║  Para trocar o gerador de VIN, edite APENAS este arquivo.               ║
-    ║  Para ativar/desativar, use config.generateVIN = true/false             ║
+    ║  To change the VIN generator, edit ONLY this file.                      ║
+    ║  To enable/disable, use config.generateVIN = true/false                 ║
     ╚══════════════════════════════════════════════════════════════════════════╝
 --]]
 
 VINBridge = {}
 
----Gera um VIN usando o resource configurado (piotreq_gpt por padrão).
----Se o resource não estiver rodando, usa um gerador genérico de 17 caracteres.
----@return string|nil  VIN gerado ou nil em caso de falha
+---Generates a VIN using the configured resource (piotreq_gpt by default).
+---If the resource is not running, it uses a generic 17-character generator.
+---@return string|nil Generated VIN or nil on failure
 function VINBridge.generate()
     -- ── piotreq_gpt ───────────────────────────────────────────────────────
-    -- Usa o export oficial do piotreq_gpt quando estiver rodando
+    -- Uses the official piotreq_gpt export when it's running
     if GetResourceState('piotreq_gpt') == 'started' then
         local ok, vin = pcall(function()
             return exports['piotreq_gpt']:GenerateVIN()
@@ -28,20 +28,20 @@ function VINBridge.generate()
     end
 
     -- ── custom ────────────────────────────────────────────────────────────
-    -- Troque o bloco acima pela chamada ao seu resource de VIN caso seja outro.
-    -- Exemplos:
+    -- Replace the block above with the call to your VIN resource if it's different.
+    -- Examples:
     --
-    -- if GetResourceState('meu_mdt') == 'started' then
+    -- if GetResourceState('my_mdt') == 'started' then
     --     local ok, vin = pcall(function()
-    --         return exports['meu_mdt']:GenerateVIN()
+    --         return exports['my_mdt']:GenerateVIN()
     --     end)
     --     if ok and vin and vin ~= '' then return vin end
     -- end
 
-    -- ── Fallback genérico ─────────────────────────────────────────────────
-    -- Usado quando nenhum resource de VIN está disponível mas a coluna é
-    -- obrigatória no banco. Gera um VIN aleatório de 17 caracteres (padrão ISO 3779).
-    local charset = "0123456789ABCDEFGHJKLMNPRSTUVWXYZ" -- sem I, O, Q (norma ISO)
+    -- ── Generic Fallback ─────────────────────────────────────────────────
+    -- Used when no VIN resource is available but the column is
+    -- required in the database. Generates a random 17-character VIN (ISO 3779 standard).
+    local charset = "0123456789ABCDEFGHJKLMNPRSTUVWXYZ" -- no I, O, Q (ISO standard)
     local vin = ""
     for _ = 1, 17 do
         local r = math.random(1, #charset)
@@ -50,9 +50,9 @@ function VINBridge.generate()
     return vin
 end
 
----Executa um INSERT em player_vehicles com ou sem a coluna `vin`,
----dependendo da configuração config.generateVIN.
----@param fields table  { license, citizenid, model, hash, mods, plate }
+---Executes an INSERT into player_vehicles with or without the `vin` column,
+---depending on the config.generateVIN setting.
+---@param fields table { license, citizenid, model, hash, mods, plate }
 function VINBridge.insert(fields)
     local config = require 'config.config'
 
@@ -62,7 +62,7 @@ function VINBridge.insert(fields)
         if ok and genVin and genVin ~= '' then
             vin = genVin
         else
-            print("^1[newage_vehiclesales]^7 VINBridge.generate() falhou. Inserindo sem VIN gerado.")
+            print("^1[newage_vehiclesales]^7 VINBridge.generate() failed. Inserting without generated VIN.")
         end
     end
 

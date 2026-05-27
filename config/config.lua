@@ -1,66 +1,78 @@
 return {
-    -- Configuração geral
-    debug = false, -- Ativa o modo de debug (mostra polyzones, vagas de veículos e local de venda)
+    -- General Settings
+    debug = false, -- Enables debug mode (shows polyzones, vehicle spots and sell locations)
     
-    -- API FiveManage
-    FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
-    FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- Endpoint da API do FiveManage
+    -- FiveManage API
+    FiveManageToken = "PUT YOUR TOKEN HERE", -- FiveManage API Token (Get it at https://fivemanage.com/)
+    FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- FiveManage API Endpoint
 
-    -- Idioma do script ('pt-br' ou 'en')
-    language = 'pt-br', -- Idioma do script ('pt-br' ou 'en')
+    -- Script language ('pt-br' or 'en')
+    language = 'en', -- Script language ('pt-br' or 'en')
 
-    -- Configurações da Venda
-    enableSellBack = true, -- Ativa/desativa a opção de vender veículo de volta para a concessionária
-    sellBackPercentage = 50, -- Porcentagem do valor do veículo pago de volta (Ex: 50 para 50% do valor padrão)
-    dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
-    currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
-    currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")
-    allowImageUrl = true, -- Permite o jogador usar um Link (URL) de imagem ao invés da câmera do jogo
+    -- Sales Settings
+    enableSellBack = true, -- Enable/disable the option to sell the vehicle back to the dealership
+    sellBackPercentage = 50, -- Percentage of the vehicle's value paid back (Ex: 50 for 50% of the default value)
+    dealerFee = 50, -- Fee percentage (Ex: 15 for 15%. Set to 0 to disable)
+    currencySymbol = "$", -- Local currency symbol (Ex: "R$", "$", "€")
+    currencyCode = "USD", -- Local currency code (Ex: "BRL", "USD", "EUR")
+    allowImageUrl = true, -- Allows the player to use an Image Link (URL) instead of the in-game camera
 
-    -- Configurações cancelamento de venda
-    showLocatorLine = true, -- Mostra uma linha vertical no veículo após o cancelamento para facilitar a localização
+    -- Sale Cancellation Settings
+    showLocatorLine = true, -- Shows the location where the vehicle is after being returned
 
-    -- ── Quilometragem ──────────────────────────────────────────────────────
-    -- Provedor de quilometragem integrado ao contrato de compra/venda.
-    --   "jg-vehiclemileage" — usa o resource jg-vehiclemileage (requer que esteja rodando)
-    --   "custom"            — implemente em client/mileage_bridge.lua e server/mileage_bridge.lua
-    --   "none"              — desativa a exibição de quilometragem no contrato
+    -- Blacklist (Vehicles that cannot be sold at the dealership)
+    blacklistedVehicles = {
+        'adder',
+        'zentorno'
+    },
+
+    -- ── Mileage ────────────────────────────────────────────────────────────
+    -- Mileage provider integrated with the buy/sell contract.
+    --   "jg-vehiclemileage" — uses the jg-vehiclemileage resource (must be running)
+    --   "custom"            — implement in client/mileage_bridge.lua and server/mileage_bridge.lua
+    --   "none"              — disables mileage display in the contract
     mileageProvider = "jg-vehiclemileage",
 
-    -- Unidade de distância exibida no contrato ("km" ou "miles")
-    mileageUnit = "km",
+    -- Distance unit displayed in the contract ("km" or "miles")
+    mileageUnit = "miles",
     -- ──────────────────────────────────────────────────────────────────────
 
-    -- ── Integração de VIN (Chassi) ─────────────────────────────────────────
-    -- Ative se o seu servidor usa um MDT/sistema que exige a coluna `vin`
-    -- na tabela player_vehicles (ex: piotreq_gpt).
-    -- O gerador e a lógica de integração ficam em: server/vin_bridge.lua
-    generateVIN = true,
+    -- ── VIN (Chassis) Integration ──────────────────────────────────────────
+    -- Enable if your server uses an MDT/system that requires the `vin` column
+    -- in the player_vehicles table (ex: piotreq_gpt).
+    -- The generator and integration logic are located in: server/vin_bridge.lua
+    generateVIN = false,
     -- ──────────────────────────────────────────────────────────────────────
 
-    -- Configurações do Target
-    useTarget = true, -- Ativa/desativa o target (Se true, usa ox_target. Se false, usa blips)
+    -- Target Settings
+    useTarget = true, -- Enable/disable target (If true, uses ox_target. If false, uses blips)
 
-    -- Configurações das Zonas
+    -- Zones Settings
     zones = {
-        senoracss = { -- Nome da zona
-            businessName = "Concessionária de Usados", -- Nome da empresa
-            sellVehicle = vec4(1233.26, 2730.52, 38.01, 270.66), -- Coordenadas da zona de venda (x, y, z, heading)
-            buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5), -- Coordenadas da zona de compra (x, y, z, heading)
-            pedModel = 's_m_m_autoshop_01', -- Modelo do NPC vendedor
-            pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Dicionário de animação
-            pedAnimName = 'base', -- Nome da animação
-            pedProp = 'prop_cs_tablet', -- Prop que ele segura (Ex: tablet)
+        senoracss = { -- Zone name
+            businessName = "Used Car Dealership", -- Business name
+            
+            -- Allowed Vehicle Classes (GTA 5 vehicle classes)
+            -- Common classes: 0-12 (Cars/SUVs/Vans), 8 (Motorcycles), 14 (Boats), 15 (Helicopters), 16 (Planes)
+            -- If empty or missing, all classes are allowed.
+            --allowedClasses = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20, 22 },
+            allowedClasses = { 14 },
+            sellVehicle = vec4(1233.26, 2730.52, 38.01, 270.66), -- Sell zone coordinates (x, y, z, heading)
+            buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5), -- Buy zone coordinates (x, y, z, heading)
+            pedModel = 's_m_m_autoshop_01', -- Seller NPC model
+            pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Animation dictionary
+            pedAnimName = 'base', -- Animation name
+            pedProp = 'prop_cs_tablet', -- Prop held by the NPC (Ex: tablet)
             historyLocation = {
-                coords = vec4(1224.23, 2729.02, 38.0, 180.0), -- Coordenadas (x, y, z, heading)
-                usePed = true,                             -- Se true, spawna o NPC. Se false, usa apenas zona do ox_target
-                pedModel = 's_m_m_autoshop_02',             -- Modelo do Ped (NPC)
-                pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Animação
-                pedAnimName = 'base',                       -- Nome da animação
-                pedProp = 'prop_cs_tablet',                  -- Prop do tablet na mão
-                targetLabel = "Acessar Histórico e Anúncios", -- Texto exibido no target
-                targetIcon = "fas fa-history",               -- Ícone exibido no target
-                distance = 2.5                              -- Distância máxima de interação
+                coords = vec4(1224.23, 2729.02, 38.0, 180.0), -- Coordinates (x, y, z, heading)
+                usePed = true,                             -- If true, spawns the NPC. If false, only uses ox_target zone
+                pedModel = 's_m_m_autoshop_02',             -- Ped (NPC) Model
+                pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Animation dictionary
+                pedAnimName = 'base',                       -- Animation name
+                pedProp = 'prop_cs_tablet',                  -- Tablet prop in hand
+                targetLabel = "Access History and Ads", -- Text displayed on target
+                targetIcon = "fas fa-history",               -- Icon displayed on target
+                distance = 2.5                              -- Maximum interaction distance
             },
             polyzone = { -- The points that form the polyzone.
                 vec3(1338.3748779297, 2645.0153808594, 36.0),

@@ -336,6 +336,32 @@ local function openMainMenu(bool)
     if veh then
         local modelHash = GetEntityModel(veh)
         local modelName = GetDisplayNameFromVehicleModel(modelHash):lower()
+
+        if config.blacklistedVehicles then
+            for _, blModel in ipairs(config.blacklistedVehicles) do
+                if blModel:lower() == modelName then
+                    exports.qbx_core:Notify(locale('error.vehicle_blacklisted'), "error")
+                    return
+                end
+            end
+        end
+
+        local vehClass = GetVehicleClass(veh)
+        local zoneCfg = config.zones[zone]
+        if zoneCfg and zoneCfg.allowedClasses then
+            local isAllowed = false
+            for _, classId in ipairs(zoneCfg.allowedClasses) do
+                if classId == vehClass then
+                    isAllowed = true
+                    break
+                end
+            end
+            if not isAllowed then
+                exports.qbx_core:Notify(locale('error.vehicle_class_not_allowed'), "error")
+                return
+            end
+        end
+
         -- Capitalize first letter of vehicle name
         local formattedName = modelName:gsub("^%l", string.upper)
         local plate = qbx.getVehiclePlate(veh)

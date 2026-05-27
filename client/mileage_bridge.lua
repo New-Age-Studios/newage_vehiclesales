@@ -2,13 +2,13 @@
     ╔══════════════════════════════════════════════════════════════════════════╗
     ║              NEWAGE VEHICLESALES — MILEAGE BRIDGE (CLIENT)              ║
     ║                                                                          ║
-    ║  Este arquivo é a ponte de quilometragem do sistema de vendas.           ║
-    ║  Para trocar o sistema de quilometragem, edite APENAS este arquivo.      ║
+    ║  This file is the mileage bridge for the sales system.                  ║
+    ║  To change the mileage system, edit ONLY this file.                     ║
     ║                                                                          ║
-    ║  Provedores suportados (config.mileageProvider):                         ║
-    ║    "jg-vehiclemileage" — usa exports do jg-vehiclemileage                ║
-    ║    "custom"            — implemente getRawKm() abaixo                    ║
-    ║    "none"              — desativa quilometragem (não exibe no contrato)  ║
+    ║  Supported providers (config.mileageProvider):                          ║
+    ║    "jg-vehiclemileage" — uses jg-vehiclemileage exports                 ║
+    ║    "custom"            — implement getRawKm() below                     ║
+    ║    "none"              — disables mileage (doesn't show in contract)    ║
     ╚══════════════════════════════════════════════════════════════════════════╝
 --]]
 
@@ -18,11 +18,11 @@ MileageBridge = {}
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- getRawKm(plate)
--- Retorna a quilometragem numérica em KM para uma placa específica.
--- Implementação varia de acordo com config.mileageProvider.
+-- Returns the numeric mileage in KM for a specific plate.
+-- Implementation varies based on config.mileageProvider.
 -- ─────────────────────────────────────────────────────────────────────────────
----@param plate string  Placa do veículo (sem espaços)
----@return number|nil   Quilometragem em km ou nil se não disponível
+---@param plate string Vehicle plate (without spaces)
+---@return number|nil  Mileage in km or nil if not available
 function MileageBridge.getRawKm(plate)
     local provider = config.mileageProvider or "none"
 
@@ -32,7 +32,7 @@ function MileageBridge.getRawKm(plate)
             return nil
         end
 
-        -- Prioridade 1: statebag (já carregado pelo jg, sem roundtrip ao servidor)
+        -- Priority 1: statebag (already loaded by jg, no server roundtrip)
         local veh = cache.vehicle
         if veh and veh ~= 0 and DoesEntityExist(veh) then
             local plateTrimmed = plate:gsub("%s+", "")
@@ -45,7 +45,7 @@ function MileageBridge.getRawKm(plate)
             end
         end
 
-        -- Prioridade 2: export getMileageByPlate (faz callback ao servidor jg)
+        -- Priority 2: export getMileageByPlate (triggers a jg server callback)
         local ok, result = pcall(function()
             return exports["jg-vehiclemileage"]:getMileageByPlate(plate)
         end)
@@ -56,34 +56,34 @@ function MileageBridge.getRawKm(plate)
         return nil
 
     -- ── custom ────────────────────────────────────────────────────────────
-    -- Configure config.mileageProvider = "custom" e implemente aqui
-    -- a busca pelo seu sistema de quilometragem.
-    -- Esta função pode usar lib.callback.await pois é chamada de dentro
-    -- de um contexto de thread (openSellContract / openBuyContract).
+    -- Set config.mileageProvider = "custom" and implement
+    -- the fetch logic for your mileage system here.
+    -- This function can use lib.callback.await since it's called from
+    -- within a thread context (openSellContract / openBuyContract).
     elseif provider == "custom" then
-        --[[ EXEMPLO 1: via export client-side de outro resource
+        --[[ EXAMPLE 1: via client-side export of another resource
         local ok, result = pcall(function()
-            return exports["meu_mileage"]:getMileageByPlate(plate)
+            return exports["my_mileage"]:getMileageByPlate(plate)
         end)
         if ok and result then return tonumber(result) end
         --]]
 
-        --[[ EXEMPLO 2: via callback ao servidor
-        local mileage = lib.callback.await("meu_mileage:getMileage", false, plate)
+        --[[ EXAMPLE 2: via server callback
+        local mileage = lib.callback.await("my_mileage:getMileage", false, plate)
         return mileage and tonumber(mileage) or nil
         --]]
 
-        return nil -- ← substitua pela sua implementação
+        return nil -- ← replace with your implementation
 
     end
 
-    return nil -- provider == "none" ou não reconhecido
+    return nil -- provider == "none" or unrecognized
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- formatMileage(km)
--- Formata um número de quilômetros como string legível para o contrato.
--- Respeita config.mileageUnit ("km" ou "miles").
+-- Formats a number of kilometers into a readable string for the contract.
+-- Respects config.mileageUnit ("km" or "miles").
 -- ─────────────────────────────────────────────────────────────────────────────
 ---@param km number
 ---@return string
@@ -94,10 +94,10 @@ function MileageBridge.formatMileage(km)
         local miles = km * 0.621371
         return string.format("%.0f mi", miles)
     else
-        -- Formata em km com separador de milhar (ex: "12.543 km")
+        -- Format in km with thousand separator (e.g. "12.543 km")
         local rounded = math.floor(km + 0.5)
         local formatted = tostring(rounded)
-        -- Insere pontos como separador de milhar (padrão BR)
+        -- Insert dots as thousand separators (BR standard)
         formatted = formatted:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
         return formatted .. " km"
     end
@@ -105,8 +105,8 @@ end
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- getForDisplay(plate)
--- Função principal chamada pelo main.lua.
--- Retorna string formatada para exibir no contrato, ou nil se desativado.
+-- Main function called by main.lua.
+-- Returns formatted string to display in the contract, or nil if disabled.
 -- ─────────────────────────────────────────────────────────────────────────────
 ---@param plate string
 ---@return string|nil

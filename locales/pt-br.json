@@ -6,7 +6,10 @@
         "finish_payments": "Você deve terminar de pagar este veículo antes de poder vendê-lo.",
         "no_space_on_lot": "Não há espaço para o seu carro no terreno!",
         "not_in_veh": "Você não está em um veículo!",
-        "not_for_sale": "Este veículo NÃO está à venda!"
+        "not_for_sale": "Este veículo NÃO está à venda!",
+        "no_permission_delete": "Você não tem permissão para excluir este histórico.",
+        "vehicle_blacklisted": "Este modelo de veículo não pode ser vendido aqui!",
+        "vehicle_class_not_allowed": "Esta categoria de veículo não é aceita nesta concessionária!"
     },
     "menu": {
         "view_contract": "Ver Contrato",
@@ -23,7 +26,8 @@
         "sold_car_for_price": "Você vendeu seu carro por %s%s",
         "car_up_for_sale": "Seu carro foi colocado à venda! Preço - %s%s",
         "vehicle_bought": "Veículo Comprado",
-        "vehicle_returned": "Veículo devolvido! Localize-o na concessionária."
+        "vehicle_returned": "Veículo devolvido! Localize-o na concessionária.",
+        "history_removed": "Histórico removido com sucesso!"
     },
     "charinfo": {
         "firstname": "Desconhecido",
@@ -197,7 +201,20 @@
         "photo_menu_url": "Link da Imagem (URL)",
         "photo_menu_none": "Sem Foto",
         "photo_menu_url_placeholder": "https://...",
-        "photo_menu_url_confirm": "Aplicar Link",
-        "photo_menu_cancel": "Cancelar"
+        "photo_menu_cancel": "Cancelar",
+        "none": "Nenhuma"
+    },
+    "webhook": {
+        "username": "Concessionária de Usados Logs",
+        "cancel_title": "❌ Anúncio Cancelado",
+        "cancel_desc": "**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Anúncio original de:** %s %s",
+        "sell_title": "🚗 Veículo Anunciado",
+        "sell_desc": "**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Valor:** %s %s\n**Descrição:** %s",
+        "sellback_title": "🏦 Venda para Concessionária (Trade-In)",
+        "sellback_desc": "**Jogador:** %s %s (%s)\n**Modelo:** %s\n**Placa:** %s\n**Preço de Tabela:** %s %s\n**Pago de Volta (%s%%):** %s %s",
+        "buy_title": "🔑 Veículo Comprado",
+        "buy_desc": "**Comprador:** %s %s (%s)\n**Vendedor:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor Pago:** %s %s",
+        "delete_title": "🗑️ Histórico Excluído",
+        "delete_desc": "**Vendedor:** %s %s (%s)\n**Comprador original:** %s\n**Modelo:** %s\n**Placa:** %s\n**Valor da Transação:** %s %s\n**Data da venda:** %s"
     }
 }

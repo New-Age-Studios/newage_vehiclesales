@@ -6,7 +6,10 @@
         "finish_payments": "You must finish paying for this vehicle before selling it.",
         "no_space_on_lot": "There is no space for your car on the lot!",
         "not_in_veh": "You are not in a vehicle!",
-        "not_for_sale": "This vehicle is NOT for sale!"
+        "not_for_sale": "This vehicle is NOT for sale!",
+        "no_permission_delete": "You do not have permission to delete this history.",
+        "vehicle_blacklisted": "This vehicle model cannot be sold here!",
+        "vehicle_class_not_allowed": "This vehicle category is not accepted at this dealership!"
     },
     "menu": {
         "view_contract": "View Contract",
@@ -23,7 +26,8 @@
         "sold_car_for_price": "You sold your car for %s%s",
         "car_up_for_sale": "Your car is now for sale! Price - %s%s",
         "vehicle_bought": "Vehicle Purchased",
-        "vehicle_returned": "Vehicle returned! Locate it at the dealership."
+        "vehicle_returned": "Vehicle returned! Locate it at the dealership.",
+        "history_removed": "History successfully removed!"
     },
     "charinfo": {
         "firstname": "Unknown",
@@ -198,6 +202,20 @@
         "photo_menu_none": "No Photo",
         "photo_menu_url_placeholder": "https://...",
         "photo_menu_url_confirm": "Apply Link",
-        "photo_menu_cancel": "Cancel"
+        "photo_menu_cancel": "Cancel",
+        "none": "None"
+    },
+    "webhook": {
+        "username": "Used Dealership Logs",
+        "cancel_title": "❌ Ad Cancelled",
+        "cancel_desc": "**Player:** %s %s (%s)\n**Model:** %s\n**Plate:** %s\n**Original Ad Price:** %s %s",
+        "sell_title": "🚗 Vehicle Advertised",
+        "sell_desc": "**Player:** %s %s (%s)\n**Model:** %s\n**Plate:** %s\n**Price:** %s %s\n**Description:** %s",
+        "sellback_title": "🏦 Sold to Dealership (Trade-In)",
+        "sellback_desc": "**Player:** %s %s (%s)\n**Model:** %s\n**Plate:** %s\n**Market Price:** %s %s\n**Paid Back (%s%%):** %s %s",
+        "buy_title": "🔑 Vehicle Purchased",
+        "buy_desc": "**Buyer:** %s %s (%s)\n**Seller:** %s\n**Model:** %s\n**Plate:** %s\n**Paid Amount:** %s %s",
+        "delete_title": "🗑️ History Deleted",
+        "delete_desc": "**Seller:** %s %s (%s)\n**Original Buyer:** %s\n**Model:** %s\n**Plate:** %s\n**Transaction Value:** %s %s\n**Sale Date:** %s"
     }
 }
