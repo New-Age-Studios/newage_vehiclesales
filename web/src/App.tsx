@@ -47,7 +47,8 @@ const App: React.FC = () => {
             fuelType: data.vehicleData?.fuelType,
             colorRGB: data.vehicleData?.colorRGB,
             isExotic: data.vehicleData?.isExotic,
-            transmission: data.vehicleData?.transmission
+            transmission: data.vehicleData?.transmission,
+            mileage: data.vehicleData?.mileage
           },
           seller: {
             firstname: data.sellerData?.firstname || "Vendedor",
