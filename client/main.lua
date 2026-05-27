@@ -1067,7 +1067,6 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
     FreezeEntityPosition(veh, false)
     Wait(0)
     
-    TaskEnterVehicle(PlayerPedId(), veh, 10000, -1, 2.0, 1, 0)
     SetVehicleHandbrake(veh, false)
 
     exports.qbx_core:Notify(locale(notifyKey or 'success.vehicle_bought'), 'success', 2500)
