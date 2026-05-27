@@ -188,6 +188,16 @@
         "contract_confirm_seller": "Seller",
         "contract_confirm_buyer": "Buyer",
         "contract_confirm_finalize": "Sign and Finalize",
-        "contract_confirm_back": "Back to Contract"
+        "contract_confirm_back": "Back to Contract",
+        "contract_payment_method": "Payment Method",
+        "contract_payment_bank": "Bank",
+        "contract_payment_cash": "Cash",
+        "photo_menu_title": "Image Options",
+        "photo_menu_camera": "In-Game Camera",
+        "photo_menu_url": "Image Link (URL)",
+        "photo_menu_none": "No Photo",
+        "photo_menu_url_placeholder": "https://...",
+        "photo_menu_url_confirm": "Apply Link",
+        "photo_menu_cancel": "Cancel"
     }
 }

@@ -126,21 +126,15 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
                 </div>
                 {!readOnly && (
                   <div className="flex justify-between pt-3 mt-1.5 border-t border-zinc-200/50 items-center">
-                    <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_payment_method') || 'Método de Pagamento'}</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setPaymentMethod('bank')}
-                        className={`px-3 py-1 text-xs font-bold rounded uppercase border ${paymentMethod === 'bank' ? 'bg-zinc-800 text-white border-zinc-800' : 'bg-transparent text-zinc-500 border-zinc-300 hover:border-zinc-400'}`}
-                      >
-                        Banco
-                      </button>
-                      <button 
-                        onClick={() => setPaymentMethod('cash')}
-                        className={`px-3 py-1 text-xs font-bold rounded uppercase border ${paymentMethod === 'cash' ? 'bg-green-600 text-white border-green-600' : 'bg-transparent text-zinc-500 border-zinc-300 hover:border-zinc-400'}`}
-                      >
-                        Dinheiro
-                      </button>
-                    </div>
+                    <span className="font-bold text-zinc-500 uppercase tracking-tight">{t('contract_payment_method')}</span>
+                    <select 
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'bank' | 'cash')}
+                      className="px-2 py-1.5 text-xs font-bold rounded uppercase border bg-white text-zinc-800 border-zinc-300 focus:border-zinc-500 outline-none cursor-pointer shadow-sm"
+                    >
+                      <option value="bank">{t('contract_payment_bank')}</option>
+                      <option value="cash">{t('contract_payment_cash')}</option>
+                    </select>
                   </div>
                 )}
               </div>

@@ -47,6 +47,8 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
+  const [customImageUrl, setCustomImageUrl] = useState('');
   const feePercentage = data.dealerFee;
 
   const numericPrice = parseInt(price) || 0;
@@ -110,13 +112,7 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
               <VehiclePreview 
                 model={vehicleState.model} 
                 photoUrl={vehicleState.photoUrl} 
-                onTakePhoto={() => {
-                  fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/startVehicleCamera`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plate: vehicleState.plate })
-                  });
-                }}
+                onTakePhoto={() => setShowPhotoMenu(true)}
               />
               <VehicleSpecsGrid vehicle={vehicleState} onUpdate={handleUpdateVehicle} onOpenColorPicker={() => setShowColorPicker(true)} />
             </div>
@@ -194,6 +190,75 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
         </div>
       )}
 
+      {/* Photo Menu Overlay */}
+      {showPhotoMenu && (
+        <div className="absolute inset-0 z-[110] flex items-center justify-center p-8 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-[28px]" onClick={() => setShowPhotoMenu(false)} />
+          <div className="relative bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-300">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{t('photo_menu_title') || 'Opções de Imagem'}</h3>
+                <button onClick={() => setShowPhotoMenu(false)} className="text-zinc-600 hover:text-white transition-colors">
+                   <X size={20} />
+                </button>
+             </div>
+             
+             <div className="space-y-3 mt-4">
+               {/* Option 1: Camera */}
+               <button 
+                 onClick={() => {
+                   setShowPhotoMenu(false);
+                   fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/startVehicleCamera`, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ plate: vehicleState.plate })
+                   });
+                 }}
+                 className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white font-bold uppercase text-[12px] tracking-widest h-12 rounded-xl transition-all"
+               >
+                 {t('photo_menu_camera') || 'Câmera do Jogo'}
+               </button>
+
+               {/* Option 2: Sem Foto */}
+               <button 
+                 onClick={() => {
+                   setShowPhotoMenu(false);
+                   handleUpdateVehicle({ photoUrl: '' });
+                 }}
+                 className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-bold uppercase text-[12px] tracking-widest h-12 rounded-xl transition-all"
+               >
+                 {t('photo_menu_none') || 'Sem Foto'}
+               </button>
+
+               <div className="h-px bg-zinc-800/50 my-4" />
+
+               {/* Option 3: Link/URL */}
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">{t('photo_menu_url') || 'Link da Imagem (URL)'}</label>
+                 <div className="flex gap-2">
+                   <input
+                     type="text"
+                     value={customImageUrl}
+                     onChange={(e) => setCustomImageUrl(e.target.value)}
+                     placeholder={t('photo_menu_url_placeholder') || 'https://...'}
+                     className="flex-1 bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-concessionaire"
+                   />
+                   <button 
+                     onClick={() => {
+                       if(customImageUrl.trim().length > 0) {
+                         handleUpdateVehicle({ photoUrl: customImageUrl.trim() });
+                         setShowPhotoMenu(false);
+                       }
+                     }}
+                     className="bg-concessionaire hover:bg-concessionaire/90 text-white font-bold uppercase text-[10px] tracking-widest px-4 rounded-xl transition-all"
+                   >
+                     {t('photo_menu_url_confirm') || 'Aplicar Link'}
+                   </button>
+                 </div>
+               </div>
+             </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

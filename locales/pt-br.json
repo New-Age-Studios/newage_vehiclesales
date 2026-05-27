@@ -188,6 +188,16 @@
         "contract_confirm_seller": "Vendedor",
         "contract_confirm_buyer": "Comprador",
         "contract_confirm_finalize": "Assinar e Finalizar",
-        "contract_confirm_back": "Voltar ao Contrato"
+        "contract_confirm_back": "Voltar ao Contrato",
+        "contract_payment_method": "Método de Pagamento",
+        "contract_payment_bank": "Banco",
+        "contract_payment_cash": "Dinheiro",
+        "photo_menu_title": "Opções de Imagem",
+        "photo_menu_camera": "Câmera do Jogo",
+        "photo_menu_url": "Link da Imagem (URL)",
+        "photo_menu_none": "Sem Foto",
+        "photo_menu_url_placeholder": "https://...",
+        "photo_menu_url_confirm": "Aplicar Link",
+        "photo_menu_cancel": "Cancelar"
     }
 }
