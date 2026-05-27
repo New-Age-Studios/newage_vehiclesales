@@ -135,6 +135,8 @@ local function setupDisplayVehicles(vDataList)
             slotData.isExotic  = v.isExotic
             slotData.transmission = v.transmission
             slotData.photo_url = v.photo_url
+            slotData.mileage   = v.mileage
+            slotData.vin       = v.vin
             
             currentPlates[plate] = false
             
