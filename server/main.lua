@@ -329,7 +329,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
 
     local pvData = MySQL.single.await('SELECT vin, mileage FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
     local vin = pvData and pvData.vin
-    local mileage = pvData and pvData.mileage or 0
+    local mileage = vehicleData.mileage or (pvData and pvData.mileage) or 0
 
     if mileage == 0 and config.mileageProvider == "jg-vehiclemileage" and GetResourceState("jg-vehiclemileage") == "started" then
         local ok, result = pcall(function()

@@ -554,6 +554,11 @@ local function sellData(data, plate)
     vehicleData.photoUrl = data.vehicleData.photoUrl
     vehicleData.zone = zone
     
+    local stateMileage = Entity(vehicleData.ent).state.vehicleMileage
+    if stateMileage then
+        vehicleData.mileage = tonumber(stateMileage)
+    end
+    
     local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
     local count = 0
     local occupiedSpots = {}
