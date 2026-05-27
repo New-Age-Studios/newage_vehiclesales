@@ -198,6 +198,8 @@ local function setupDisplayVehicles(vDataList)
                                                         SetVehicleDamage(veh, coords.x, coords.y, coords.z, d, 1000.0, true)
                                                     end
                                                 end
+                                                -- CRITICAL: Let the physics engine process the impact force for a few frames before freezing the car!
+                                                Wait(50)
                                                 end
                                             end
                                         end
