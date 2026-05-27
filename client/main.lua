@@ -156,14 +156,9 @@ local function setupDisplayVehicles(vDataList)
                                     local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
                                     print("^2[newage_vehiclesales]^7 CreateVehicle returned entity:", veh)
                                     SetVehicleNumberPlateText(veh, plate)
-                                    SetVehicleFixed(veh)
                                     
                                     if v.mods then
                                         local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
-                                        -- Force health to prevent GTA engine from auto-deleting "dead" local vehicles
-                                        modTable.engineHealth = 1000.0
-                                        modTable.bodyHealth = 1000.0
-                                        modTable.tankHealth = 1000.0
                                         
                                         lib.setVehicleProperties(veh, modTable)
                                     end
