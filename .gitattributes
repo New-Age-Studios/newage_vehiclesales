@@ -1,2 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Ignorar pastas de código-fonte ao gerar o ZIP do GitHub Releases
+web/ export-ignore
+.vscode/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+build.ps1 export-ignore
