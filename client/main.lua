@@ -528,10 +528,14 @@ local function sellData(data, plate)
     
     local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
     local count = 0
+    local occupiedSpots = {}
     if vehicles then
         for _, v in ipairs(vehicles) do
             if v.zone == zone then
                 count = count + 1
+                if v.spot_index then
+                    occupiedSpots[v.spot_index] = true
+                end
             end
         end
     end
@@ -541,7 +545,15 @@ local function sellData(data, plate)
         return exports.qbx_core:Notify(locale('error.no_space_on_lot'), 'error', 3500)
     end
     
-    targetSellSpot = spots[count + 1]
+    local freeSpotIndex = 1
+    for s = 1, #spots do
+        if not occupiedSpots[s] then
+            freeSpotIndex = s
+            break
+        end
+    end
+    
+    targetSellSpot = spots[freeSpotIndex]
     pendingSellData = {
         price = data.price,
         vehicleData = vehicleData
