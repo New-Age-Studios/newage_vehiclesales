@@ -154,6 +154,7 @@ local function setupDisplayVehicles(vDataList)
                                     local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
                                     print("^2[newage_vehiclesales]^7 CreateVehicle returned entity:", veh)
                                     SetVehicleNumberPlateText(veh, plate)
+                                    SetVehicleFixed(veh)
                                     
                                     if v.mods then
                                         local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
@@ -166,7 +167,6 @@ local function setupDisplayVehicles(vDataList)
                                     end
                                     
                                     SetEntityInvincible(veh, true)
-                                    SetVehicleFixed(veh)
                                     SetVehicleDoorsLocked(veh, 2)
                                     FreezeEntityPosition(veh, true)
                                     SetVehicleEngineOn(veh, false, true, true)
