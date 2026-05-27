@@ -1086,7 +1086,6 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
     Wait(50)
     SetVehicleOnGroundProperly(veh)
 
-    SetVehicleFixed(veh)
     SetVehicleUndriveable(veh, false)
     SetVehicleDoorsLocked(veh, 1) -- unlocked
     FreezeEntityPosition(veh, false)
