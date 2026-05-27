@@ -14,7 +14,7 @@ O script foca na **estabilidade de dados** e na **imersão física**, incluindo 
 
 - **Vitrine Física de Veículos**: Os carros anunciados aparecem no mundo real (estacionados nas vagas designadas).
 - **Tablet Interativo (NUI)**: Gerencie seus anúncios através de um tablet animado, veja veículos de outros jogadores e acesse o histórico de negociações.
-- **Sistema de Danos Altamente Preciso**: Compatibilidade nativa com o `rhd_garage`. A lataria, sujeira e estado do motor são salvos e passados 100% como estão para o comprador.
+- **Sistema de Danos Altamente Preciso**: Compatibilidade nativa com o `rhd_garage` e `jg-advancedgarages`. A lataria, sujeira e estado do motor são salvos e passados 100% como estão para o comprador.
 - **Pagamento Offline**: Vendeu o carro de madrugada enquanto dormia? Sem problemas! O dinheiro cai direto na conta bancária do vendedor, mesmo que ele esteja offline.
 - **Integração de Histórico**: Histórico vitalício de carros comprados e vendidos salvo na base de dados.
 - **Geração de VIN Avançada**: Ponte nativa `VINBridge` integrada com o gerador oficial `piotreq_gpt` (ou fallback seguro).
@@ -30,7 +30,7 @@ O script foca na **estabilidade de dados** e na **imersão física**, incluindo 
 - [oxmysql](https://github.com/overextended/oxmysql)
 - **Opcionais**:
   - `jg-vehiclemileage` (para sistema real de quilometragem)
-  - `rhd_garage` (nativamente pareado para danos super avançados)
+  - `jg-advancedgarages` ou `rhd_garage` (nativamente pareados para ler a estrutura de danos super avançados)
   - `piotreq_gpt` (para geração de chassi/VIN)
 
 ## ⚙️ Instalação
