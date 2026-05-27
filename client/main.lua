@@ -235,23 +235,17 @@ local function setupDisplayVehicles(vDataList)
                                         lib.setVehicleProperties(veh, modTable)
                                     end
                                     
-                                    -- Apply body health then deformation (same order as rhd_garage)
+                                    -- Apply engine/body health for display purposes
                                     SetVehicleEngineHealth(veh, (v.engine or 1000) + 0.0)
                                     SetVehicleBodyHealth(veh, (v.body or 1000) + 0.0)
 
-                                    if v.damage and v.damage ~= '' and v.damage ~= 'null' then
+                                    if v.damage then
                                         local dmgTable = type(v.damage) == 'string' and json.decode(v.damage) or v.damage
-                                        if dmgTable and type(dmgTable) == 'table' then
-                                            if dmgTable.dirt then
-                                                SetVehicleDirtLevel(veh, dmgTable.dirt)
-                                            end
-                                            _Deformation.set(veh, dmgTable)
+                                        if dmgTable and dmgTable.dirt then
+                                            SetVehicleDirtLevel(veh, dmgTable.dirt)
                                         end
                                     end
 
-                                    -- IMPORTANT: do NOT call FreezeEntityPosition before this Wait!
-                                    -- The GTA physics engine needs at least one frame to process
-                                    -- the impact forces applied by SetVehicleDamage above.
                                     Wait(100)
 
                                     SetEntityInvincible(veh, true)
