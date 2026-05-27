@@ -227,7 +227,12 @@ end
 
 RegisterNetEvent('qb-occasion:client:syncDisplayVehicles', function(syncZone, vDataList)
     if zone == syncZone then
-        setupDisplayVehicles(vDataList)
+        CreateThread(function()
+            while isProcessingVehicleAction do
+                Wait(100)
+            end
+            setupDisplayVehicles(vDataList)
+        end)
     end
 end)
 
@@ -505,12 +510,14 @@ local function completeVehicleSale()
             timeout = timeout - 1
         end
     end
-
-    isProcessingVehicleAction = false
-
     TriggerServerEvent('qb-occasions:server:sellVehicle', price, vehicleData, oldVehNetId)
 
     exports.qbx_core:Notify((locale('success.car_up_for_sale'):format(config.currencySymbol or "R$", price)), 'success')
+    
+    -- Give time for the server to network the DeleteEntity before allowing the ghost vehicle to spawn
+    -- Without this, the ghost vehicle spawns inside the old vehicle and gets physics-launched into oblivion if parked crooked.
+    Wait(2000)
+    isProcessingVehicleAction = false
 end
 
 local function sellData(data, plate)
