@@ -44,7 +44,7 @@ return {
     zones = {
         senoracss = { -- Nome da zona
             businessName = "Concessionária de Usados", -- Nome da empresa
-            sellVehicle = vec4(1235.61, 2733.44, 37.4, 0.42), -- Coordenadas da zona de venda (x, y, z, heading)
+            sellVehicle = vec4(1233.26, 2730.52, 38.01, 270.66), -- Coordenadas da zona de venda (x, y, z, heading)
             buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5), -- Coordenadas da zona de compra (x, y, z, heading)
             pedModel = 's_m_m_autoshop_01', -- Modelo do NPC vendedor
             pedAnimDict = 'amb@code_human_in_bus_passenger_idles@female@tablet@base', -- Dicionário de animação
