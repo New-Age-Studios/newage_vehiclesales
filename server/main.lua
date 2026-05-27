@@ -106,7 +106,7 @@ MySQL.ready(function()
           `color_rgb` varchar(50) DEFAULT '#FFFFFF',
           `is_exotic` tinyint(1) DEFAULT 0,
           `transmission` varchar(50) DEFAULT 'Automático',
-          `photo_url` varchar(255) DEFAULT NULL,
+          `photo_url` longtext DEFAULT NULL,
           `zone` varchar(50) DEFAULT NULL,
           `date` timestamp DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`)
@@ -122,8 +122,12 @@ MySQL.ready(function()
                 print(("^2[newage_vehiclesales]^7 Adicionada coluna '%s' na tabela '%s'"):format(columnName, tableName))
             end
         end
-        checkAndAddColumn("newage_vehiclesales", "photo_url", "varchar(255) DEFAULT NULL")
-        checkAndAddColumn("newage_vehiclesales_history", "photo_url", "varchar(255) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales", "photo_url", "longtext DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales_history", "photo_url", "longtext DEFAULT NULL")
+        
+        -- Fix existing varchar columns by modifying them to longtext
+        MySQL.query.await("ALTER TABLE `newage_vehiclesales` MODIFY COLUMN `photo_url` longtext DEFAULT NULL")
+        MySQL.query.await("ALTER TABLE `newage_vehiclesales_history` MODIFY COLUMN `photo_url` longtext DEFAULT NULL")
         
         checkAndAddColumn("newage_vehiclesales", "zone", "varchar(50) DEFAULT NULL")
         checkAndAddColumn("newage_vehiclesales_history", "zone", "varchar(50) DEFAULT NULL")
