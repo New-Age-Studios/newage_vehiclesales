@@ -971,13 +971,13 @@ RegisterNUICallback('close', function(_, cb)
     cb('ok')
 end)
 
-RegisterNUICallback('buyVehicle', function(_, cb)
+RegisterNUICallback('buyVehicle', function(data, cb)
     SetNuiFocus(false, false)
     if currentBusyPlate then
         lib.callback.await('qbx_vehiclesales:server:setVehicleBusy', false, currentBusyPlate, false)
         currentBusyPlate = nil
     end
-    TriggerServerEvent('qb-occasions:server:buyVehicle', currentVehicle)
+    TriggerServerEvent('qb-occasions:server:buyVehicle', currentVehicle, data.paymentMethod)
     cb('ok')
 end)
 

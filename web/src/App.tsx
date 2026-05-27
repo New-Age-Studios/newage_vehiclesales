@@ -179,11 +179,11 @@ const App: React.FC = () => {
     });
   };
 
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = (paymentMethod?: string) => {
     fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/buyVehicle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({ paymentMethod: paymentMethod || 'bank' })
     });
     setVisible(false);
   };

@@ -356,12 +356,18 @@ RegisterNetEvent('qb-occasions:server:sellVehicleBack', function(vehData, oldVeh
     )
 end)
 
-RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
+RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, paymentMethod)
     local src = source
     local player = exports.qbx_core:GetPlayer(src)
     local result = MySQL.query.await('SELECT * FROM newage_vehiclesales WHERE plate = ? AND occasionid = ?',{vehicleData.plate, vehicleData.oid})
     if not result[1] or not next(result[1]) then return end
-    if player.PlayerData.money.bank < result[1].price then
+    
+    local method = paymentMethod == 'cash' and 'cash' or 'bank'
+    if not player.PlayerData.money[method] and player.PlayerData.money['money'] then
+        method = paymentMethod == 'cash' and 'money' or 'bank'
+    end
+
+    if player.PlayerData.money[method] < result[1].price then
         exports.qbx_core:Notify(src, locale('error.not_enough_money'), 'error', 3500)
         return
     end
@@ -370,7 +376,7 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
     local sellerData = exports.qbx_core:GetPlayerByCitizenId(sellerCitizenId)
     local fee = config.dealerFee or 0
     local sellerPayout = math.ceil(result[1].price * (1 - (fee / 100)))
-    player.Functions.RemoveMoney('bank', result[1].price)
+    player.Functions.RemoveMoney(method, result[1].price)
     VINBridge.insert({
         license   = player.PlayerData.license,
         citizenid = player.PlayerData.citizenid,
