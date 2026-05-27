@@ -466,8 +466,8 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
     -- Insert transaction into history before deleting the active listing
     MySQL.insert([[
         INSERT INTO newage_vehiclesales_history 
-        (seller, buyer_name, buyer_citizenid, price, plate, model, description, mods, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (seller, buyer_name, buyer_citizenid, price, plate, model, description, mods, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, vin, mileage) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ]], {
         result[1].seller,
         player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname,
