@@ -7,6 +7,74 @@ local spawnedPeds = {}
 local spawnedProps = {}
 local debugVehicles = {}
 
+-- ─────────────────────────────────────────────────────────────
+-- Deformation helper – mirrors rhd_garage/modules/deformation.lua
+-- so that we capture and replay dents using the exact same math.
+-- ─────────────────────────────────────────────────────────────
+local _Deformation = {}
+
+local function _Round(value, n)
+    return math.floor(value * 10^n) / 10^n
+end
+
+local function _GetVehicleOffsets(vehicle)
+    local min, max = GetModelDimensions(GetEntityModel(vehicle))
+    local X     = _Round((max.x - min.x) * 0.5, 2)
+    local Y     = _Round((max.y - min.y) * 0.5, 2)
+    local Z     = _Round((max.z - min.z) * 0.5, 2)
+    local halfY = _Round(Y * 0.5, 2)
+    return {
+        vector3(-X, Y, 0.0),    vector3(-X, Y, Z),
+        vector3(0.0, Y, 0.0),   vector3(0.0, Y, Z),
+        vector3(X, Y, 0.0),     vector3(X, Y, Z),
+        vector3(-X, halfY, 0.0),  vector3(-X, halfY, Z),
+        vector3(0.0, halfY, 0.0), vector3(0.0, halfY, Z),
+        vector3(X, halfY, 0.0),   vector3(X, halfY, Z),
+        vector3(-X, 0.0, 0.0),  vector3(-X, 0.0, Z),
+        vector3(0.0, 0.0, 0.0), vector3(0.0, 0.0, Z),
+        vector3(X, 0.0, 0.0),   vector3(X, 0.0, Z),
+        vector3(-X, -halfY, 0.0),  vector3(-X, -halfY, Z),
+        vector3(0.0, -halfY, 0.0), vector3(0.0, -halfY, Z),
+        vector3(X, -halfY, 0.0),   vector3(X, -halfY, Z),
+        vector3(-X, -Y, 0.0),   vector3(-X, -Y, Z),
+        vector3(0.0, -Y, 0.0),  vector3(0.0, -Y, Z),
+        vector3(X, -Y, 0.0),    vector3(X, -Y, Z),
+    }
+end
+
+--- Reads the current deformation of a vehicle into a table
+--- compatible with _Deformation.set (and rhd_garage Deformation.set).
+_Deformation.get = function(vehicle)
+    local data = {}
+    for _, v in ipairs(_GetVehicleOffsets(vehicle)) do
+        local dmg = math.floor(#(GetVehicleDeformationAtPos(vehicle, v.x, v.y, v.z)) * 1000.0) / 1000.0
+        data[#data + 1] = { offset = { x = v.x, y = v.y, z = v.z }, damage = dmg }
+    end
+    return data
+end
+
+--- Applies a saved deformation table back onto a vehicle.
+--- Must be called BEFORE FreezeEntityPosition so GTA physics can process it.
+_Deformation.set = function(vehicle, deformation)
+    if not deformation or not next(deformation) then return end
+    local fMult = GetVehicleHandlingFloat(vehicle, "CHandlingData", "fDeformationDamageMult")
+    local damageMult = 20.0
+    if     fMult <= 0.55 then damageMult = 1000.0
+    elseif fMult <= 0.65 then damageMult = 400.0
+    elseif fMult <= 0.75 then damageMult = 200.0
+    end
+    for _, v in pairs(deformation) do
+        local o = v.offset
+        local d = (v.damage or 0) * damageMult
+        if d > 14.0 then d = 14.5 end
+        if o and d > 0 then
+            SetVehicleDamage(vehicle, o.x, o.y, o.z, d, 1000.0, true)
+        end
+    end
+end
+-- ─────────────────────────────────────────────────────────────
+
+
 local isPositioningVehicle = false
 local pendingSellData = nil
 local targetSellSpot = nil
@@ -167,44 +235,25 @@ local function setupDisplayVehicles(vDataList)
                                         lib.setVehicleProperties(veh, modTable)
                                     end
                                     
+                                    -- Apply body health then deformation (same order as rhd_garage)
+                                    SetVehicleEngineHealth(veh, (v.engine or 1000) + 0.0)
+                                    SetVehicleBodyHealth(veh, (v.body or 1000) + 0.0)
+
                                     if v.damage and v.damage ~= '' and v.damage ~= 'null' then
                                         local dmgTable = type(v.damage) == 'string' and json.decode(v.damage) or v.damage
                                         if dmgTable and type(dmgTable) == 'table' then
-                                            -- Give the physics engine a bit more time to settle the vehicle on the ground
-                                            Wait(250)
-                                            if DoesEntityExist(veh) then
-                                                if dmgTable.dirt then
-                                                    SetVehicleDirtLevel(veh, dmgTable.dirt)
-                                                end
-                                                if dmgTable.deformation and type(dmgTable.deformation) == 'table' then
-                                                    local fDeformationDamageMult = GetVehicleHandlingFloat(veh, "CHandlingData", "fDeformationDamageMult")
-                                                local damageMult = 20.0
-                                                if (fDeformationDamageMult <= 0.55) then
-                                                    damageMult = 1000.0
-                                                elseif (fDeformationDamageMult <= 0.65) then
-                                                    damageMult = 400.0
-                                                elseif (fDeformationDamageMult <= 0.75) then
-                                                    damageMult = 200.0
-                                                end
-                                                
-                                                for _, def in ipairs(dmgTable.deformation) do
-                                                    -- Handle both JSON array formats [offset, damage] and object {offset, damage}
-                                                    local coords = def[1] or def.offset
-                                                    local damageAmt = tonumber(def[2] or def.damage)
-                                                    
-                                                    if coords and damageAmt then
-                                                        local d = damageAmt * damageMult
-                                                        if d > 14.0 then d = 14.5 end
-                                                        SetVehicleDamage(veh, coords.x, coords.y, coords.z, d, 1000.0, true)
-                                                    end
-                                                end
-                                                -- CRITICAL: Let the physics engine process the impact force for a few frames before freezing the car!
-                                                Wait(50)
-                                                end
+                                            if dmgTable.dirt then
+                                                SetVehicleDirtLevel(veh, dmgTable.dirt)
                                             end
+                                            _Deformation.set(veh, dmgTable)
                                         end
                                     end
-                                    
+
+                                    -- IMPORTANT: do NOT call FreezeEntityPosition before this Wait!
+                                    -- The GTA physics engine needs at least one frame to process
+                                    -- the impact forces applied by SetVehicleDamage above.
+                                    Wait(100)
+
                                     SetEntityInvincible(veh, true)
                                     SetVehicleDoorsLocked(veh, 2)
                                     FreezeEntityPosition(veh, true)
@@ -601,8 +650,8 @@ local function sellData(data, plate)
     vehicleData.engine = GetVehicleEngineHealth(vehicleData.ent)
     vehicleData.body = GetVehicleBodyHealth(vehicleData.ent)
     vehicleData.fuel = GetVehicleFuelLevel(vehicleData.ent)
-    -- Some bases store damage in statebags or properties, let's try getting it if it exists
-    vehicleData.damage = vehicleData.mods and vehicleData.mods.damage or nil
+    -- Capture deformation using the same system as rhd_garage so we can replay it faithfully on the preview vehicle
+    vehicleData.damage = json.encode(_Deformation.get(vehicleData.ent))
     
     local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
     local count = 0
