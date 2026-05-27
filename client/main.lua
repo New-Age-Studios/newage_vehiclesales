@@ -561,6 +561,12 @@ local function sellData(data, plate)
         vehicleData.mileage = tonumber(stateMileage)
     end
     
+    vehicleData.engine = GetVehicleEngineHealth(vehicleData.ent)
+    vehicleData.body = GetVehicleBodyHealth(vehicleData.ent)
+    vehicleData.fuel = GetVehicleFuelLevel(vehicleData.ent)
+    -- Some bases store damage in statebags or properties, let's try getting it if it exists
+    vehicleData.damage = vehicleData.mods and vehicleData.mods.damage or nil
+    
     local vehicles = lib.callback.await('qb-occasions:server:getVehicles', false)
     local count = 0
     local occupiedSpots = {}

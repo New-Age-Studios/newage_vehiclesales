@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `newage_vehiclesales` (
   `damage` varchar(255) DEFAULT NULL,
   `engine` float DEFAULT 1000,
   `body` float DEFAULT 1000,
+  `fuel` float DEFAULT 100,
   PRIMARY KEY (`id`),
   KEY `occasionId` (`occasionid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=325 DEFAULT CHARSET=utf8mb4;
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS `newage_vehiclesales_history` (
   `damage` varchar(255) DEFAULT NULL,
   `engine` float DEFAULT 1000,
   `body` float DEFAULT 1000,
+  `fuel` float DEFAULT 100,
   `date` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
