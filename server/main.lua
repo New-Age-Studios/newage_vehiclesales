@@ -59,6 +59,10 @@ local function refreshDisplayVehicles(zone)
                     photo_url    = v.photo_url,
                     vin          = v.vin,
                     mileage      = v.mileage,
+                    damage       = v.damage,
+                    engine       = v.engine,
+                    body         = v.body,
+                    fuel         = v.fuel,
                     loc          = coords,
                     zone         = zone,
                     slotIndex    = spotIndex

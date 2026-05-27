@@ -137,6 +137,10 @@ local function setupDisplayVehicles(vDataList)
             slotData.photo_url = v.photo_url
             slotData.mileage   = v.mileage
             slotData.vin       = v.vin
+            slotData.damage    = v.damage
+            slotData.engine    = v.engine
+            slotData.body      = v.body
+            slotData.fuel      = v.fuel
             
             currentPlates[plate] = false
             
