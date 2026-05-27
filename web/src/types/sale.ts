@@ -26,4 +26,5 @@ export interface SaleData {
   vehicleData: SaleVehicleData;
   sellerData: SaleSellerData;
   dealerFee: number;
+  allowImageUrl?: boolean;
 }

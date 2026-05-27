@@ -376,6 +376,7 @@ local function openSellContract(bool)
         currencyCode = config.currencyCode or "BRL",
         bizName = config.zones[zone].businessName,
         dealerFee = config.dealerFee or 0,
+        allowImageUrl = config.allowImageUrl,
         uiTranslations = getUiTranslations(),
         sellerData = {
             firstname = QBX.PlayerData.charinfo.firstname,

@@ -112,7 +112,17 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
               <VehiclePreview 
                 model={vehicleState.model} 
                 photoUrl={vehicleState.photoUrl} 
-                onTakePhoto={() => setShowPhotoMenu(true)}
+                onTakePhoto={() => {
+                  if (data.allowImageUrl) {
+                    setShowPhotoMenu(true);
+                  } else {
+                    fetch(`https://${(window as any).GetParentResourceName?.() || 'qbx_vehiclesales'}/startVehicleCamera`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ plate: vehicleState.plate })
+                    });
+                  }
+                }}
               />
               <VehicleSpecsGrid vehicle={vehicleState} onUpdate={handleUpdateVehicle} onOpenColorPicker={() => setShowColorPicker(true)} />
             </div>
@@ -216,17 +226,6 @@ export const VehicleSaleTablet: React.FC<VehicleSaleTabletProps> = ({
                  className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white font-bold uppercase text-[12px] tracking-widest h-12 rounded-xl transition-all"
                >
                  {t('photo_menu_camera') || 'Câmera do Jogo'}
-               </button>
-
-               {/* Option 2: Sem Foto */}
-               <button 
-                 onClick={() => {
-                   setShowPhotoMenu(false);
-                   handleUpdateVehicle({ photoUrl: '' });
-                 }}
-                 className="w-full bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-bold uppercase text-[12px] tracking-widest h-12 rounded-xl transition-all"
-               >
-                 {t('photo_menu_none') || 'Sem Foto'}
                </button>
 
                <div className="h-px bg-zinc-800/50 my-4" />
