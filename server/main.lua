@@ -331,6 +331,15 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
     local vin = pvData and pvData.vin
     local mileage = pvData and pvData.mileage or 0
 
+    if mileage == 0 and config.mileageProvider == "jg-vehiclemileage" and GetResourceState("jg-vehiclemileage") == "started" then
+        local ok, result = pcall(function()
+            return exports["jg-vehiclemileage"]:getMileageByPlate(vehicleData.plate)
+        end)
+        if ok and result then
+            mileage = tonumber(result) or 0
+        end
+    end
+
     MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
     MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
