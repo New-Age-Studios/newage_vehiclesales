@@ -177,14 +177,27 @@ local function setupDisplayVehicles(vDataList)
                                                     SetVehicleDirtLevel(veh, dmgTable.dirt)
                                                 end
                                                 if dmgTable.deformation and type(dmgTable.deformation) == 'table' then
-                                                    for _, def in ipairs(dmgTable.deformation) do
-                                                        local coords = def[1]
-                                                        local damageAmt = tonumber(def[2])
-                                                        if coords and damageAmt then
-                                                            -- Use radius 10.0 so the dent is localized. If radius is too high, the whole car takes uniform damage and no dent appears.
-                                                            SetVehicleDamage(veh, coords.x, coords.y, coords.z, damageAmt * 200.0, 10.0, true)
-                                                        end
+                                                    local fDeformationDamageMult = GetVehicleHandlingFloat(veh, "CHandlingData", "fDeformationDamageMult")
+                                                local damageMult = 20.0
+                                                if (fDeformationDamageMult <= 0.55) then
+                                                    damageMult = 1000.0
+                                                elseif (fDeformationDamageMult <= 0.65) then
+                                                    damageMult = 400.0
+                                                elseif (fDeformationDamageMult <= 0.75) then
+                                                    damageMult = 200.0
+                                                end
+                                                
+                                                for _, def in ipairs(dmgTable.deformation) do
+                                                    -- Handle both JSON array formats [offset, damage] and object {offset, damage}
+                                                    local coords = def[1] or def.offset
+                                                    local damageAmt = tonumber(def[2] or def.damage)
+                                                    
+                                                    if coords and damageAmt then
+                                                        local d = damageAmt * damageMult
+                                                        if d > 14.0 then d = 14.5 end
+                                                        SetVehicleDamage(veh, coords.x, coords.y, coords.z, d, 1000.0, true)
                                                     end
+                                                end
                                                 end
                                             end
                                         end
