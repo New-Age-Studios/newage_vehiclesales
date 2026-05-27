@@ -57,6 +57,8 @@ local function refreshDisplayVehicles(zone)
                     isExotic     = (v.is_exotic == 1 or v.is_exotic == true),
                     transmission = v.transmission,
                     photo_url    = v.photo_url,
+                    vin          = v.vin,
+                    mileage      = v.mileage,
                     loc          = coords,
                     zone         = zone,
                     slotIndex    = spotIndex

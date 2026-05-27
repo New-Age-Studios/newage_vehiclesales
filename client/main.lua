@@ -430,7 +430,12 @@ local function openBuyContract(sellerData, vehicleData)
             end
         end
 
-        -- Fallback: server-side callback (reads from DB)
+        -- Fallback: use the mileage saved in the vitrine DB when the car was listed
+        if not mileage and vehicleData.mileage then
+            mileage = MileageBridge.formatMileage(tonumber(vehicleData.mileage))
+        end
+        
+        -- Final fallback: server-side callback
         if not mileage then
             local rawKm = lib.callback.await('newage_vehiclesales:server:getMileage', false, vehicleData.plate)
             if rawKm then
