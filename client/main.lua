@@ -157,6 +157,11 @@ local function setupDisplayVehicles(vDataList)
                                     
                                     if v.mods then
                                         local modTable = type(v.mods) == 'string' and json.decode(v.mods) or v.mods
+                                        -- Force health to prevent GTA engine from auto-deleting "dead" local vehicles
+                                        modTable.engineHealth = 1000.0
+                                        modTable.bodyHealth = 1000.0
+                                        modTable.tankHealth = 1000.0
+                                        
                                         lib.setVehicleProperties(veh, modTable)
                                     end
                                     
@@ -531,6 +536,10 @@ local function sellData(data, plate)
     vehicleData.model = dataReturning
     vehicleData.plate = plate
     vehicleData.mods = lib.getVehicleProperties(vehicleData.ent)
+    if vehicleData.mods then
+        -- We keep the damage state so the buyer receives it exactly as it was.
+        -- We no longer strip damage here.
+    end
     vehicleData.desc = data.desc
     -- New fields from NUI tablet
     vehicleData.fuelType = data.vehicleData.fuelType
