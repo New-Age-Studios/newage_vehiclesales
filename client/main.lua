@@ -170,15 +170,21 @@ local function setupDisplayVehicles(vDataList)
                                     if v.damage and v.damage ~= '' and v.damage ~= 'null' then
                                         local dmgTable = type(v.damage) == 'string' and json.decode(v.damage) or v.damage
                                         if dmgTable and type(dmgTable) == 'table' then
-                                            if dmgTable.dirt then
-                                                SetVehicleDirtLevel(veh, dmgTable.dirt)
-                                            end
-                                            if dmgTable.deformation and type(dmgTable.deformation) == 'table' then
-                                                for _, def in ipairs(dmgTable.deformation) do
-                                                    local coords = def[1]
-                                                    local damageAmt = def[2]
-                                                    if coords and damageAmt then
-                                                        SetVehicleDamage(veh, coords.x, coords.y, coords.z, damageAmt, 100.0, true)
+                                            -- Give the physics engine a tick to place the vehicle in the world
+                                            Wait(100)
+                                            if DoesEntityExist(veh) then
+                                                if dmgTable.dirt then
+                                                    SetVehicleDirtLevel(veh, dmgTable.dirt)
+                                                end
+                                                if dmgTable.deformation and type(dmgTable.deformation) == 'table' then
+                                                    for _, def in ipairs(dmgTable.deformation) do
+                                                        local coords = def[1]
+                                                        local damageAmt = tonumber(def[2])
+                                                        if coords and damageAmt then
+                                                            -- The saved deformation value is usually very small (e.g., 0.07). 
+                                                            -- GTA's native expects a larger impact force (often * 200 or * 1000).
+                                                            SetVehicleDamage(veh, coords.x, coords.y, coords.z, damageAmt * 1000.0, 100.0, true)
+                                                        end
                                                     end
                                                 end
                                             end
