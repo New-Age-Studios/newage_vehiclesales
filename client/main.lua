@@ -348,15 +348,20 @@ local function openMainMenu(bool)
 
         local vehClass = GetVehicleClass(veh)
         local zoneCfg = config.zones[zone]
-        if zoneCfg and zoneCfg.allowedClasses then
+        if zoneCfg and type(zoneCfg.allowedClasses) == 'table' then
+            -- Only validate if the table actually has entries
+            local hasEntries = false
             local isAllowed = false
-            for _, classId in ipairs(zoneCfg.allowedClasses) do
-                if classId == vehClass then
+            for _, classId in pairs(zoneCfg.allowedClasses) do
+                hasEntries = true
+                if tonumber(classId) == vehClass then
                     isAllowed = true
                     break
                 end
             end
-            if not isAllowed then
+            
+            if hasEntries and not isAllowed then
+                print(("^3[newage_vehiclesales]^7 Bloqueado por categoria. Classe do veículo: %s. Classes permitidas: %s"):format(vehClass, json.encode(zoneCfg.allowedClasses)))
                 exports.qbx_core:Notify(locale('error.vehicle_class_not_allowed'), "error")
                 return
             end
