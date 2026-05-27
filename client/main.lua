@@ -163,6 +163,24 @@ local function setupDisplayVehicles(vDataList)
                                         lib.setVehicleProperties(veh, modTable)
                                     end
                                     
+                                    if v.damage and v.damage ~= '' and v.damage ~= 'null' then
+                                        local dmgTable = type(v.damage) == 'string' and json.decode(v.damage) or v.damage
+                                        if dmgTable and type(dmgTable) == 'table' then
+                                            if dmgTable.dirt then
+                                                SetVehicleDirtLevel(veh, dmgTable.dirt)
+                                            end
+                                            if dmgTable.deformation and type(dmgTable.deformation) == 'table' then
+                                                for _, def in ipairs(dmgTable.deformation) do
+                                                    local coords = def[1]
+                                                    local damageAmt = def[2]
+                                                    if coords and damageAmt then
+                                                        SetVehicleDamage(veh, coords.x, coords.y, coords.z, damageAmt, 100.0, true)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                    
                                     SetEntityInvincible(veh, true)
                                     SetVehicleDoorsLocked(veh, 2)
                                     FreezeEntityPosition(veh, true)
