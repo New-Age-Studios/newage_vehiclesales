@@ -390,6 +390,11 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
         end
     end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
+    
+    -- Exclui do banco primeiro para que o refreshDisplayVehicles não envie a vitrine antiga aos clientes
+    MySQL.query.await('DELETE FROM newage_vehiclesales WHERE plate = ? AND occasionid = ?',{result[1].plate, result[1].occasionid})
+    busyVehicles[result[1].plate] = nil
+
     TriggerClientEvent('qb-occasions:client:BuyFinished', src, result[1], vehicleData.loc)
     
     local zoneStr = result[1].zone or vehicleData.zone
@@ -416,9 +421,6 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData)
         result[1].photo_url,
         result[1].zone
     })
-
-    MySQL.query('DELETE FROM newage_vehiclesales WHERE plate = ? AND occasionid = ?',{result[1].plate, result[1].occasionid})
-    busyVehicles[result[1].plate] = nil
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
     TriggerEvent('qb-phone:server:sendNewMailToOffline', sellerCitizenId, {
         sender = locale('mail.sender'),
