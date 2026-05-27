@@ -56,21 +56,27 @@ end
 function VINBridge.insert(fields)
     local config = require 'config.config'
 
-    if config.generateVIN then
-        local ok, vin = pcall(VINBridge.generate)
-        if ok and vin and vin ~= '' then
-            MySQL.insert(
-                'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, vin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, vin }
-            )
-            return
+    local vin = fields.vin
+    if not vin and config.generateVIN then
+        local ok, genVin = pcall(VINBridge.generate)
+        if ok and genVin and genVin ~= '' then
+            vin = genVin
+        else
+            print("^1[newage_vehiclesales]^7 VINBridge.generate() falhou. Inserindo sem VIN gerado.")
         end
-        -- Gerador falhou: loga e cai no INSERT sem VIN para não travar a compra
-        print("^1[newage_vehiclesales]^7 VINBridge.generate() falhou. Inserindo veículo sem VIN.")
     end
 
-    MySQL.insert(
-        'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0 }
-    )
+    local mileage = fields.mileage or 0
+
+    if vin then
+        MySQL.insert(
+            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, vin, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, vin, mileage }
+        )
+    else
+        MySQL.insert(
+            'INSERT INTO player_vehicles (license, citizenid, vehicle, hash, mods, plate, state, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            { fields.license, fields.citizenid, fields.model, fields.hash, fields.mods, fields.plate, 0, mileage }
+        )
+    end
 end

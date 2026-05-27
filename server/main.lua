@@ -269,6 +269,8 @@ RegisterNetEvent('qb-occasions:server:ReturnVehicle', function(vehicleData)
         hash      = joaat(vehicleData.model),
         mods      = vehicleData.mods,
         plate     = vehicleData.plate,
+        vin       = result[1].vin,
+        mileage   = result[1].mileage
     })
     MySQL.query('DELETE FROM newage_vehiclesales WHERE occasionid = ? AND plate = ?', {vehicleData.oid, vehicleData.plate})
     busyVehicles[vehicleData.plate] = nil
@@ -323,8 +325,12 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
 
+    local pvData = MySQL.single.await('SELECT vin, mileage FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
+    local vin = pvData and pvData.vin
+    local mileage = pvData and pvData.mileage or 0
+
     MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
-    MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
+    MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
         vehicleData.desc, 
@@ -338,7 +344,9 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         vehicleData.transmission or 'Automático',
         vehicleData.photoUrl,
         vehicleData.zone,
-        freeSpot
+        freeSpot,
+        vin,
+        mileage
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     
@@ -429,6 +437,8 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
         hash      = GetHashKey(result[1].model),
         mods      = result[1].mods,
         plate     = result[1].plate,
+        vin       = result[1].vin,
+        mileage   = result[1].mileage
     })
     if sellerData then
         sellerData.Functions.AddMoney('bank', sellerPayout)
@@ -470,7 +480,9 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
         result[1].is_exotic and 1 or 0,
         result[1].transmission or 'Automático',
         result[1].photo_url,
-        result[1].zone
+        result[1].zone,
+        result[1].vin,
+        result[1].mileage
     })
     local vehicleName = VEHICLES[result[1].model] and VEHICLES[result[1].model].name or result[1].model
     TriggerEvent('qb-phone:server:sendNewMailToOffline', sellerCitizenId, {

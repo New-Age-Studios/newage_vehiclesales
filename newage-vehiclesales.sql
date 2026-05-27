@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS `newage_vehiclesales` (
   `transmission` varchar(50) DEFAULT 'Automático',
   `photo_url` varchar(255) DEFAULT NULL,
   `zone` varchar(50) DEFAULT NULL,
+  `spot_index` int(11) DEFAULT NULL,
+  `vin` varchar(50) DEFAULT NULL,
+  `mileage` float DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `occasionId` (`occasionid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=325 DEFAULT CHARSET=utf8mb4;
@@ -33,6 +36,8 @@ CREATE TABLE IF NOT EXISTS `newage_vehiclesales_history` (
   `transmission` varchar(50) DEFAULT 'Automático',
   `photo_url` varchar(255) DEFAULT NULL,
   `zone` varchar(50) DEFAULT NULL,
+  `vin` varchar(50) DEFAULT NULL,
+  `mileage` float DEFAULT 0,
   `date` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
