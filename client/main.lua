@@ -497,6 +497,12 @@ local function completeVehicleSale()
     local oldVehNetId = nil
     if veh and veh ~= 0 then
         oldVehNetId = VehToNet(veh)
+        TaskLeaveVehicle(PlayerPedId(), veh, 0)
+        local timeout = 50
+        while IsPedInAnyVehicle(PlayerPedId(), false) and timeout > 0 do
+            Wait(100)
+            timeout = timeout - 1
+        end
     end
 
     isProcessingVehicleAction = false
@@ -1019,7 +1025,7 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
         coords = (targetZone and config.zones[targetZone]) and config.zones[targetZone].buyVehicle or vec4(1213.31, 2735.4, 38.27, 182.5)
     end
 
-    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, true)
+    local netId = lib.callback.await('qbx_vehiclesales:server:spawnVehicle', false, vehData, coords, false)
     if not netId then
         exports.qbx_core:Notify("Erro ao spawnar veículo. Contacte um administrador.", 'error', 4000)
         return
@@ -1060,6 +1066,8 @@ local function spawnNetworkedVehicleAtSlot(vehData, spawnCoords, notifyKey)
     SetVehicleDoorsLocked(veh, 1) -- unlocked
     FreezeEntityPosition(veh, false)
     Wait(0)
+    
+    TaskEnterVehicle(PlayerPedId(), veh, 10000, -1, 2.0, 1, 0)
     SetVehicleHandbrake(veh, false)
 
     exports.qbx_core:Notify(locale(notifyKey or 'success.vehicle_bought'), 'success', 2500)
