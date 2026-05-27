@@ -50,16 +50,13 @@ local function DeleteGhostVehicle(plate, immediate)
         return 
     end
     
-    local veh = nil
-    local slot = nil
-    for s, data in pairs(occasionVehicles[zone]) do
-        if data.plate == plate then
-            veh = data.car
-            slot = s
-            break
-        end
+    local slotData = occasionVehicles[zone][plate]
+    if not slotData then
+        print("^3[newage_vehiclesales]^7 DeleteGhostVehicle: no slotData for plate:", plate)
+        return
     end
-    
+
+    local veh = slotData.car
     if not veh then
         print("^3[newage_vehiclesales]^7 DeleteGhostVehicle: no vehicle entity stored for plate:", plate)
         return
@@ -67,16 +64,16 @@ local function DeleteGhostVehicle(plate, immediate)
 
     if not DoesEntityExist(veh) then
         print("^3[newage_vehiclesales]^7 DeleteGhostVehicle: stored vehicle entity does not exist for plate:", plate)
-        occasionVehicles[zone][slot] = nil
+        occasionVehicles[zone][plate] = nil
         return
     end
     
-    if occasionVehicles[zone][slot].hasTarget then
+    if slotData.hasTarget then
         exports.ox_target:removeLocalEntity(veh, locale('menu.view_contract'))
-        occasionVehicles[zone][slot].hasTarget = false
+        slotData.hasTarget = false
     end
     
-    occasionVehicles[zone][slot] = nil
+    occasionVehicles[zone][plate] = nil
     
     print("^2[newage_vehiclesales]^7 DeleteGhostVehicle: deleting local entity:", veh)
     SetEntityAsMissionEntity(veh, true, true)
@@ -120,11 +117,11 @@ local function setupDisplayVehicles(vDataList)
             local plate = v.plate
             print("^2[newage_vehiclesales]^7 Processing vehicle in list index:", i, "plate:", plate, "slotIndex:", v.slotIndex)
             
-            if not occasionVehicles[currentZone][v.slotIndex] then
-                occasionVehicles[currentZone][v.slotIndex] = {}
+            if not occasionVehicles[currentZone][plate] then
+                occasionVehicles[currentZone][plate] = {}
             end
             
-            local slotData = occasionVehicles[currentZone][v.slotIndex]
+            local slotData = occasionVehicles[currentZone][plate]
             slotData.loc       = v.loc
             slotData.price     = v.price
             slotData.owner     = v.owner
@@ -142,7 +139,7 @@ local function setupDisplayVehicles(vDataList)
             currentPlates[plate] = false
             
             if not slotData.car or not DoesEntityExist(slotData.car) then
-                print("^2[newage_vehiclesales]^7 SlotData.car does not exist or is nil for slot:", v.slotIndex)
+                print("^2[newage_vehiclesales]^7 SlotData.car does not exist or is nil for plate:", plate)
                 if not slotData.isSpawning then
                     print("^2[newage_vehiclesales]^7 isSpawning is false, initiating thread to load model:", v.model)
                     slotData.isSpawning = true
@@ -151,7 +148,7 @@ local function setupDisplayVehicles(vDataList)
                         if lib.requestModel(model, 5000) then
                             print("^2[newage_vehiclesales]^7 Model loaded successfully:", v.model)
                             -- Confirm we are still in the same zone and slot wasn't cleared
-                            if zone == currentZone and occasionVehicles[currentZone] and occasionVehicles[currentZone][v.slotIndex] == slotData then
+                            if zone == currentZone and occasionVehicles[currentZone] and occasionVehicles[currentZone][plate] == slotData then
                                 if not slotData.car or not DoesEntityExist(slotData.car) then
                                     local coords = v.loc
                                     local veh = CreateVehicle(model, coords.x, coords.y, coords.z, coords.w, false, false)
@@ -189,7 +186,7 @@ local function setupDisplayVehicles(vDataList)
                                                 icon = 'fas fa-car',
                                                 label = locale('menu.view_contract'),
                                                 onSelect = function()
-                                                    TriggerEvent('qb-vehiclesales:client:OpenContract', v.slotIndex)
+                                                    TriggerEvent('qb-vehiclesales:client:OpenContract', plate)
                                                 end,
                                                 distance = 2.0
                                             }
@@ -214,7 +211,7 @@ local function setupDisplayVehicles(vDataList)
                     print("^2[newage_vehiclesales]^7 isSpawning is already true, skipping thread spawn.")
                 end
             else
-                print("^2[newage_vehiclesales]^7 SlotData.car already exists:", slotData.car, "for slot:", v.slotIndex)
+                print("^2[newage_vehiclesales]^7 SlotData.car already exists:", slotData.car, "for plate:", plate)
             end
         end
     end
