@@ -18,34 +18,52 @@ local function refreshDisplayVehicles(zone)
     local result = MySQL.query.await('SELECT * FROM newage_vehiclesales WHERE zone = ?', {zone})
     
     if result and #result > 0 then
-        local count = 0
+        local occupiedSpots = {}
         for i = 1, #result do
-            count = count + 1
-            if count > #spots then break end
-            
+            if result[i].spot_index then
+                occupiedSpots[result[i].spot_index] = true
+            end
+        end
+
+        for i = 1, #result do
             local v = result[i]
-            local coords = spots[count]
+            local spotIndex = v.spot_index
             
-            -- Prepare data for clients
-            local vData = {
-                plate        = v.plate,
-                model        = v.model,
-                owner        = v.seller,
-                price        = v.price,
-                desc         = v.description,
-                mods         = v.mods,
-                oid          = v.occasionid,
-                fuelType     = v.fuel_type,
-                colorRGB     = v.color_rgb,
-                isExotic     = (v.is_exotic == 1 or v.is_exotic == true),
-                transmission = v.transmission,
-                photo_url    = v.photo_url,
-                loc          = coords,
-                zone         = zone,
-                slotIndex    = count
-            }
+            if not spotIndex then
+                for s = 1, #spots do
+                    if not occupiedSpots[s] then
+                        spotIndex = s
+                        occupiedSpots[s] = true
+                        MySQL.query('UPDATE newage_vehiclesales SET spot_index = ? WHERE id = ?', {spotIndex, v.id})
+                        break
+                    end
+                end
+            end
             
-            table.insert(displayVehicles[zone], vData)
+            if spotIndex and spots[spotIndex] then
+                local coords = spots[spotIndex]
+                
+                -- Prepare data for clients
+                local vData = {
+                    plate        = v.plate,
+                    model        = v.model,
+                    owner        = v.seller,
+                    price        = v.price,
+                    desc         = v.description,
+                    mods         = v.mods,
+                    oid          = v.occasionid,
+                    fuelType     = v.fuel_type,
+                    colorRGB     = v.color_rgb,
+                    isExotic     = (v.is_exotic == 1 or v.is_exotic == true),
+                    transmission = v.transmission,
+                    photo_url    = v.photo_url,
+                    loc          = coords,
+                    zone         = zone,
+                    slotIndex    = spotIndex
+                }
+                
+                table.insert(displayVehicles[zone], vData)
+            end
         end
     end
     
@@ -108,6 +126,7 @@ MySQL.ready(function()
           `transmission` varchar(50) DEFAULT 'Automático',
           `photo_url` longtext DEFAULT NULL,
           `zone` varchar(50) DEFAULT NULL,
+          `spot_index` int(11) DEFAULT NULL,
           `date` timestamp DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -131,6 +150,9 @@ MySQL.ready(function()
         
         checkAndAddColumn("newage_vehiclesales", "zone", "varchar(50) DEFAULT NULL")
         checkAndAddColumn("newage_vehiclesales_history", "zone", "varchar(50) DEFAULT NULL")
+
+        checkAndAddColumn("newage_vehiclesales", "spot_index", "int(11) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales_history", "spot_index", "int(11) DEFAULT NULL")
         
         -- Spawn display vehicles for all zones after DB is ready
         Wait(2000)
@@ -283,8 +305,26 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
     
+    local zone = vehicleData.zone
+    local maxSpots = config.zones[zone] and config.zones[zone].vehicleSpots and #config.zones[zone].vehicleSpots or 100
+    local existingVehicles = MySQL.query.await('SELECT spot_index FROM newage_vehiclesales WHERE zone = ?', {zone})
+    local occupiedSpots = {}
+    for _, v in ipairs(existingVehicles) do
+        if v.spot_index then
+            occupiedSpots[v.spot_index] = true
+        end
+    end
+    
+    local freeSpot = nil
+    for s = 1, maxSpots do
+        if not occupiedSpots[s] then
+            freeSpot = s
+            break
+        end
+    end
+
     MySQL.query('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
-    MySQL.insert('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
+    MySQL.insert('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
         vehicleData.desc, 
@@ -297,7 +337,8 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         vehicleData.isExotic and 1 or 0,
         vehicleData.transmission or 'Automático',
         vehicleData.photoUrl,
-        vehicleData.zone
+        vehicleData.zone,
+        freeSpot
     })
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     

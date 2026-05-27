@@ -1,6 +1,6 @@
 return {
     -- Configuração geral
-    debug = false, -- Ativa o modo de debug (mostra polyzones, vagas de veículos e local de venda)
+    debug = true, -- Ativa o modo de debug (mostra polyzones, vagas de veículos e local de venda)
     
     -- API FiveManage
     FiveManageToken = "r9m4GTCfIFu5BW6Ec5is49MA6PVJOc8u", -- Token da API do FiveManage (Obtenha em https://fivemanage.com/)
