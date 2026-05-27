@@ -15,7 +15,7 @@ return {
     dealerFee = 50, -- Porcentagem da taxa (Ex: 15 para 15%. Coloque 0 para desativar)
     currencySymbol = "R$", -- Símbolo da moeda local (Ex: "R$", "$", "€")
     currencyCode = "BRL", -- Código da moeda local (Ex: "BRL", "USD", "EUR")
-    allowImageUrl = false, -- Permite o jogador usar um Link (URL) de imagem ao invés da câmera do jogo
+    allowImageUrl = true, -- Permite o jogador usar um Link (URL) de imagem ao invés da câmera do jogo
 
     -- Configurações cancelamento de venda
     showLocatorLine = true, -- Mostra uma linha vertical no veículo após o cancelamento para facilitar a localização

@@ -74,7 +74,8 @@ const App: React.FC = () => {
           bizName: data.bizName || "CONCESSIONÁRIA",
           sellerData: data.sellerData,
           vehicleData: data.vehicleData,
-          dealerFee: data.dealerFee || 0
+          dealerFee: data.dealerFee || 0,
+          allowImageUrl: data.allowImageUrl
         });
         setVisible(true);
       } else if (data.action === "mainMenu") {
