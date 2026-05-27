@@ -52,9 +52,9 @@ return {
         senoracss = { -- Zone name
             businessName = "Used Car Dealership", -- Business name
             -- Allowed Vehicle Classes (GTA 5 vehicle classes)
-            -- Common classes: 0-12 (Cars/SUVs/Vans), 8 (Motorcycles), 13 (Bicycles), 14 (Boats), 15 (Helicopters), 16 (Planes), 20 (Commercial), 22 (Open Wheel)
+            -- Common classes: 0-12 (Cars/SUVs), 13 (Bicycles), 14 (Boats), 15 (Helicopters), 16 (Planes), 17 (Service), 18 (Emergency), 19 (Military), 20 (Commercial), 21 (Trains), 22 (Open Wheel)
             -- If empty or missing, all classes are allowed.
-            allowedClasses = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 20, 22 },
+            allowedClasses = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 },
             sellVehicle = vec4(1233.26, 2730.52, 38.01, 270.66), -- Sell zone coordinates (x, y, z, heading)
             buyVehicle = vec4(1213.31, 2735.4, 38.27, 182.5), -- Buy zone coordinates (x, y, z, heading)
             pedModel = 's_m_m_autoshop_01', -- Seller NPC model

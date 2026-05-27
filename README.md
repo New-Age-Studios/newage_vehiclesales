@@ -1,3 +1,5 @@
+![New-Age Vehicle Sales Cover](https://r2.fivemanage.com/yRf87TBmEPEk9SalqfkW2/newagesale.png)
+
 # New-Age Vehicle Sales 🚗
 
 An advanced, interactive, and complete used vehicle dealership system for players on FiveM (QBox / QB-Core Frameworks).
