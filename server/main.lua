@@ -352,8 +352,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
 
-    MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
-    MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage, damage, engine, body, fuel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
+    local insertId = MySQL.insert.await('INSERT INTO newage_vehiclesales (seller, price, description, plate, model, mods, occasionid, fuel_type, color_rgb, is_exotic, transmission, photo_url, zone, spot_index, vin, mileage, damage, engine, body, fuel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',{
         player.PlayerData.citizenid, 
         vehiclePrice, 
         vehicleData.desc, 
@@ -375,6 +374,10 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         body,
         fuel
     })
+    
+    if insertId then
+        MySQL.query.await('DELETE FROM player_vehicles WHERE plate = ? AND vehicle = ?',{vehicleData.plate, vehicleData.model})
+    end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'Vehicle for Sale', 'red','**' .. GetPlayerName(src) .. '** has a ' .. vehicleData.model .. ' priced at ' .. vehiclePrice)
     
     if vehicleData.zone then refreshDisplayVehicles(vehicleData.zone) end
@@ -476,9 +479,13 @@ RegisterNetEvent('qb-occasions:server:buyVehicle', function(vehicleData, payment
     else
         local buyerData = MySQL.query.await('SELECT * FROM players WHERE citizenid = ?',{sellerCitizenId})
         if buyerData[1] then
-            local buyerMoney = json.decode(buyerData[1].money)
-            buyerMoney.bank = buyerMoney.bank + sellerPayout
-            MySQL.update('UPDATE players SET money = ? WHERE citizenid = ?', {json.encode(buyerMoney), sellerCitizenId})
+            -- oxmysql sometimes auto-decodes JSON columns into tables depending on mysql configuration.
+            -- Using type check prevents a critical Lua crash (bad argument #1 to 'decode' (string expected, got table))
+            local buyerMoney = type(buyerData[1].money) == "string" and json.decode(buyerData[1].money) or buyerData[1].money
+            if buyerMoney then
+                buyerMoney.bank = (buyerMoney.bank or 0) + sellerPayout
+                MySQL.update('UPDATE players SET money = ? WHERE citizenid = ?', {json.encode(buyerMoney), sellerCitizenId})
+            end
         end
     end
     TriggerEvent('qb-log:server:CreateLog', 'vehicleshop', 'bought', 'green', '**' .. GetPlayerName(src) .. '** has bought for ' .. result[1].price .. ' (' .. result[1].plate ..') from **' .. sellerCitizenId .. '**')
