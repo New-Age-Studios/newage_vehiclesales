@@ -344,7 +344,7 @@ RegisterNetEvent('qb-occasions:server:sellVehicle', function(vehiclePrice, vehic
         end
     end
 
-    local pvData = MySQL.single.await('SELECT vin, mileage, damage, engine, body, fuel FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
+    local pvData = MySQL.single.await('SELECT * FROM player_vehicles WHERE plate = ? AND vehicle = ?', {vehicleData.plate, vehicleData.model})
     local vin = pvData and pvData.vin
     local mileage = vehicleData.mileage or (pvData and pvData.mileage) or 0
     local damage = vehicleData.damage or (pvData and pvData.damage)
