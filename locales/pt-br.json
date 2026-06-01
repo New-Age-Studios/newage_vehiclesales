@@ -201,6 +201,7 @@
         "photo_menu_url": "Link da Imagem (URL)",
         "photo_menu_none": "Sem Foto",
         "photo_menu_url_placeholder": "https://...",
+        "photo_menu_url_confirm": "Aplicar Link",
         "photo_menu_cancel": "Cancelar",
         "none": "Nenhuma"
     },
