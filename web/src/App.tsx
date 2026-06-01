@@ -169,6 +169,7 @@ const App: React.FC = () => {
   }, [visible]);
 
   const handleClose = () => {
+    if ((window as any).isProcessingPurchase) return;
     if (mode === 'buy' && contractData?.id.startsWith('HIST-')) {
       setMode('history');
       return;

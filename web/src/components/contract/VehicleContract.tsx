@@ -19,10 +19,13 @@ interface VehicleContractProps {
   readOnly?: boolean;
 }
 
+import { PartyBalloons } from './Balloons';
+
 export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfirm, onCancel, readOnly = false }) => {
   const [isSigned, setIsSigned] = useState(readOnly);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showBalloons, setShowBalloons] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'cash'>('bank');
   const { t } = useLocale();
   const { formatPrice } = useCurrency();
@@ -36,17 +39,30 @@ export const VehicleContract: React.FC<VehicleContractProps> = ({ data, onConfir
     setShowConfirmModal(false);
     setIsSigned(true);
     setIsProcessing(true);
+    (window as any).isProcessingPurchase = true; // Blocks ESC key
     
-    // Simulate signing time before confirming
+    // Simulate signing time before celebration
     setTimeout(() => {
-      onConfirm(paymentMethod);
-    }, 1500);
+      setShowBalloons(true);
+      
+      // Wait for balloon animation to play before closing and confirming purchase
+      setTimeout(() => {
+        (window as any).isProcessingPurchase = false; // Unblocks ESC key
+        onConfirm(paymentMethod);
+      }, 4000);
+    }, 1000);
   };
 
   return (
     <div className="relative w-full h-full flex items-center justify-center p-4">
+      {showBalloons && (
+        <PartyBalloons 
+          message={`Parabéns pela aquisição do seu novo ${data.vehicle.model}!`} 
+        />
+      )}
+      
       {/* Contract Paper (A4 Proportion) */}
-      <div className="contract-paper relative w-[680px] h-[900px] bg-paper paper-texture p-8 flex flex-col shadow-2xl overflow-hidden border border-zinc-300/50">
+      <div className={`contract-paper relative w-[680px] h-[900px] bg-paper paper-texture p-8 flex flex-col shadow-2xl overflow-hidden border border-zinc-300/50 transition-opacity duration-500 ${showBalloons ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
         {/* Subtle paper grain overlay */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
         
