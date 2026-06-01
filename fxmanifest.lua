@@ -31,7 +31,8 @@ ui_page 'html/index.html'
 files {
     'locales/*.json',
     'html/index.html',
-    'html/assets/*'
+    'html/assets/*',
+    'newage-vehiclesales.sql'
 }
 
 lua54 'yes'

@@ -115,50 +115,59 @@ local function sendWebhook(action, title, description, color, fields, image)
 end
 
 MySQL.ready(function()
-    MySQL.query([[
-        CREATE TABLE IF NOT EXISTS `newage_vehiclesales_history` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `seller` varchar(50) DEFAULT NULL,
-          `buyer_name` varchar(100) DEFAULT NULL,
-          `buyer_citizenid` varchar(50) DEFAULT NULL,
-          `price` int(11) DEFAULT NULL,
-          `plate` varchar(50) DEFAULT NULL,
-          `model` varchar(50) DEFAULT NULL,
-          `description` longtext DEFAULT NULL,
-          `mods` text DEFAULT NULL,
-          `fuel_type` varchar(50) DEFAULT 'Gasolina',
-          `color_rgb` varchar(50) DEFAULT '#FFFFFF',
-          `is_exotic` tinyint(1) DEFAULT 0,
-          `transmission` varchar(50) DEFAULT 'Automático',
-          `photo_url` longtext DEFAULT NULL,
-          `zone` varchar(50) DEFAULT NULL,
-          `spot_index` int(11) DEFAULT NULL,
-          `date` timestamp DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ]])
-
-    -- Dynamic schema migration for photo_url column
     CreateThread(function()
+        -- 1. Auto-Install SQL File (For fresh installs)
+        local sqlFile = LoadResourceFile(GetCurrentResourceName(), 'newage-vehiclesales.sql')
+        if sqlFile then
+            print("^2[newage_vehiclesales]^7 Auto-Installer: Verifying database structure...")
+            
+            -- Split queries by semicolon to execute them sequentially (safest method for oxmysql)
+            local queries = {}
+            for query in string.gmatch(sqlFile, "([^;]+);") do
+                local trimmed = query:gsub("^%s*(.-)%s*$", "%1")
+                if trimmed ~= "" then
+                    table.insert(queries, trimmed)
+                end
+            end
+            
+            for _, q in ipairs(queries) do
+                MySQL.query.await(q)
+            end
+            print("^2[newage_vehiclesales]^7 Auto-Installer: SQL tables verified/installed successfully!")
+        else
+            print("^1[newage_vehiclesales]^7 Auto-Installer Error: Could not read newage-vehiclesales.sql file!")
+        end
+
+        -- 2. Dynamic schema migrations (For users upgrading from older versions)
         local function checkAndAddColumn(tableName, columnName, columnDef)
             local columns = MySQL.query.await(("SHOW COLUMNS FROM `%s` LIKE '%s'"):format(tableName, columnName))
             if not columns or #columns == 0 then
                 MySQL.query.await(("ALTER TABLE `%s` ADD COLUMN `%s` %s"):format(tableName, columnName, columnDef))
-                print(("^2[newage_vehiclesales]^7 Added column '%s' to table '%s'"):format(columnName, tableName))
+                print(("^2[newage_vehiclesales]^7 Schema Update: Added column '%s' to table '%s'"):format(columnName, tableName))
             end
         end
-        checkAndAddColumn("newage_vehiclesales", "photo_url", "longtext DEFAULT NULL")
-        checkAndAddColumn("newage_vehiclesales_history", "photo_url", "longtext DEFAULT NULL")
         
         -- Fix existing varchar columns by modifying them to longtext
         MySQL.query.await("ALTER TABLE `newage_vehiclesales` MODIFY COLUMN `photo_url` longtext DEFAULT NULL")
         MySQL.query.await("ALTER TABLE `newage_vehiclesales_history` MODIFY COLUMN `photo_url` longtext DEFAULT NULL")
         
+        -- Ensure all newer columns exist for users upgrading
         checkAndAddColumn("newage_vehiclesales", "zone", "varchar(50) DEFAULT NULL")
-        checkAndAddColumn("newage_vehiclesales_history", "zone", "varchar(50) DEFAULT NULL")
-
         checkAndAddColumn("newage_vehiclesales", "spot_index", "int(11) DEFAULT NULL")
-        checkAndAddColumn("newage_vehiclesales_history", "spot_index", "int(11) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales", "vin", "varchar(50) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales", "mileage", "float DEFAULT 0")
+        checkAndAddColumn("newage_vehiclesales", "damage", "longtext DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales", "engine", "float DEFAULT 1000")
+        checkAndAddColumn("newage_vehiclesales", "body", "float DEFAULT 1000")
+        checkAndAddColumn("newage_vehiclesales", "fuel", "float DEFAULT 100")
+
+        checkAndAddColumn("newage_vehiclesales_history", "zone", "varchar(50) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales_history", "vin", "varchar(50) DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales_history", "mileage", "float DEFAULT 0")
+        checkAndAddColumn("newage_vehiclesales_history", "damage", "longtext DEFAULT NULL")
+        checkAndAddColumn("newage_vehiclesales_history", "engine", "float DEFAULT 1000")
+        checkAndAddColumn("newage_vehiclesales_history", "body", "float DEFAULT 1000")
+        checkAndAddColumn("newage_vehiclesales_history", "fuel", "float DEFAULT 100")
         
         -- Spawn display vehicles for all zones after DB is ready
         Wait(2000)
