@@ -3,11 +3,11 @@ return {
     debug = false, -- Enables debug mode (shows polyzones, vehicle spots and sell locations)
     
     -- FiveManage API
-    FiveManageToken = "PUT YOUR TOKEN HERE", -- FiveManage API Token (Get it at https://fivemanage.com/)
+    FiveManageToken = "dXDmyT76ijx41oevD5LF6fqocHNMA5xJ", -- FiveManage API Token (Get it at https://fivemanage.com/)
     FiveManageEndpoint = "https://api.fivemanage.com/api/v3/file", -- FiveManage API Endpoint
 
     -- Script language ('pt-br' or 'en')
-    language = 'en', -- Script language ('pt-br' or 'en')
+    language = 'pt-br', -- Script language ('pt-br' or 'en')
 
     -- Sales Settings
     enableSellBack = true, -- Enable/disable the option to sell the vehicle back to the dealership
